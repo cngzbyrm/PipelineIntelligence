@@ -1,0 +1,35 @@
+.glow-card {
+  --gx: 50%;
+  --gy: 50%;
+  --gc: var(--teal);
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform .2s ease, box-shadow .2s ease;
+  cursor: default;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--gx) var(--gy),
+    color-mix(in srgb, var(--gc) 18%, transparent) 0%,
+    transparent 65%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-card:hover::before { opacity: 1 }
+
+.glow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px color-mix(in srgb, var(--gc) 15%, transparent);
+}
+
+.glow-card > * { position: relative; z-index: 1 }

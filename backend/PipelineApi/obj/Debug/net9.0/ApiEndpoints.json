@@ -1,0 +1,538 @@
+[
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetMemory",
+    "RelativePath": "api/Dashboard/ai/memory",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "ClearMemory",
+    "RelativePath": "api/Dashboard/ai/memory",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetHeatmap",
+    "RelativePath": "api/Dashboard/analytics/heatmap",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetTestHistory",
+    "RelativePath": "api/Dashboard/analytics/history/{job}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "job",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetPredictions",
+    "RelativePath": "api/Dashboard/analytics/predictions",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetSonar",
+    "RelativePath": "api/Dashboard/analytics/sonar",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetTopFiles",
+    "RelativePath": "api/Dashboard/analytics/top-files",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetTrend",
+    "RelativePath": "api/Dashboard/analytics/trend",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "Analyze",
+    "RelativePath": "api/Dashboard/analyze",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.AnalyzeRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetAuditLog",
+    "RelativePath": "api/Dashboard/audit",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "count",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetBuilds",
+    "RelativePath": "api/Dashboard/builds",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetNotes",
+    "RelativePath": "api/Dashboard/builds/{job}/{buildId}/notes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "job",
+        "Type": "System.String",
+        "IsRequired": true
+      },
+      {
+        "Name": "buildId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetLog",
+    "RelativePath": "api/Dashboard/builds/log",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "job",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "buildId",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "start",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "AddNote",
+    "RelativePath": "api/Dashboard/builds/note",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.NoteRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "StopBuild",
+    "RelativePath": "api/Dashboard/builds/stop",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.StopRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "TriggerBuild",
+    "RelativePath": "api/Dashboard/builds/trigger",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.TriggerRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "Compare",
+    "RelativePath": "api/Dashboard/compare",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "jobA",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "idA",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "jobB",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "idB",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetConfig",
+    "RelativePath": "api/Dashboard/config",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "SaveConfig",
+    "RelativePath": "api/Dashboard/config",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "cfg",
+        "Type": "PipelineApi.Models.JenkinsConfig",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "SaveAiConfig",
+    "RelativePath": "api/Dashboard/config/ai",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "PipelineApi.Models.AiConfigDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetAllSettings",
+    "RelativePath": "api/Dashboard/config/all",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "SaveAllSettings",
+    "RelativePath": "api/Dashboard/config/all",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.SettingsUpdateRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "SendBuildNotification",
+    "RelativePath": "api/Dashboard/email/build-notification",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Controllers.BuildNotificationRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "SendEmail",
+    "RelativePath": "api/Dashboard/email/send",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Controllers.EmailSendRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "TestEmail",
+    "RelativePath": "api/Dashboard/email/test",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetStats",
+    "RelativePath": "api/Dashboard/stats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetTimeline",
+    "RelativePath": "api/Dashboard/timeline",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "GetWebhooks",
+    "RelativePath": "api/Dashboard/webhooks",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "AddWebhook",
+    "RelativePath": "api/Dashboard/webhooks",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.WebhookRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "UpdateWebhook",
+    "RelativePath": "api/Dashboard/webhooks/{id}",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "req",
+        "Type": "PipelineApi.Models.WebhookRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "DeleteWebhook",
+    "RelativePath": "api/Dashboard/webhooks/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.DashboardController",
+    "Method": "TestWebhook",
+    "RelativePath": "api/Dashboard/webhooks/test/{id}",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.NexusController",
+    "Method": "GetArtifacts",
+    "RelativePath": "api/Nexus/artifacts",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "repository",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "pages",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.NexusController",
+    "Method": "DeleteArtifact",
+    "RelativePath": "api/Nexus/artifacts/{id}",
+    "HttpMethod": "DELETE",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.NexusController",
+    "Method": "GetHistory",
+    "RelativePath": "api/Nexus/history",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "count",
+        "Type": "System.Int32",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.NexusController",
+    "Method": "GetRepos",
+    "RelativePath": "api/Nexus/repositories",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PipelineApi.Controllers.NexusController",
+    "Method": "GetStats",
+    "RelativePath": "api/Nexus/stats",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]
