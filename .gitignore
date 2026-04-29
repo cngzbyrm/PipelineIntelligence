@@ -1,0 +1,17 @@
+# Visual Studio gereksizleri
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.dbcache
+*.sqlite
+
+# React / Node gereksizleri
+node_modules/
+dist/
+build/
+.env
+
+# Diğer
+.DS_Store

@@ -71,7 +71,9 @@ export function applyTheme(id: string) {
     r.style.setProperty('--glass2',     'rgba(255,255,255,.85)')
     r.style.setProperty('--glass3',     'rgba(255,255,255,.95)')
     r.style.setProperty('--glass-bdr',  t.glassBdr ?? 'rgba(0,0,0,.1)')
-    r.style.setProperty('--glass-bdr2', 'rgba(0,0,0,.18)')
+    r.style.setProperty('--glass-bdr2', 'rgba(0,0,0,.22)')
+    r.style.setProperty('--header-bg',  'rgba(255,255,255,.92)')
+    r.style.setProperty('--header-bdr', 'rgba(0,0,0,.15)')
     r.style.setProperty('--sh',         '0 2px 12px rgba(0,0,0,.08)')
     r.style.setProperty('--sh2',        '0 4px 24px rgba(0,0,0,.12)')
     document.body.style.background =
@@ -87,6 +89,8 @@ export function applyTheme(id: string) {
     r.style.setProperty('--glass3',     'rgba(255,255,255,.1)')
     r.style.setProperty('--glass-bdr',  'rgba(255,255,255,.1)')
     r.style.setProperty('--glass-bdr2', 'rgba(255,255,255,.18)')
+    r.style.setProperty('--header-bg',  'rgba(13,31,45,.85)')
+    r.style.setProperty('--header-bdr', 'rgba(255,255,255,.1)')
     r.style.setProperty('--sh',         '0 4px 24px rgba(0,0,0,.3)')
     r.style.setProperty('--sh2',        '0 8px 40px rgba(0,0,0,.4)')
     document.body.style.background =
