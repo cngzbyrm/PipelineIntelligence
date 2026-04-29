@@ -7,8 +7,13 @@ import {
 } from 'chart.js'
 import { dashboardApi } from '../services/api'
 import type { TrendPoint, HeatmapEntry, SonarEntry, Prediction } from '../types'
-
-ChartJS.register(ArcElement, Tooltip, Legend)
+declare module 'chart.js' {
+  interface ChartDatasetProperties<TType, TData> {
+    centerText?: string;
+    centerColor?: string;
+  }
+}
+//ChartJS.register(ArcElement, Tooltip, Legend)
 
 const JOBS = ['Shell.OneHub.UI','NishCMS.BackOffice','NishCMS.Store','Nish.Store.Api','Shell.OneHub.Core','ForkLiftFrontEnd']
 
@@ -63,7 +68,7 @@ function DonutChart({ value, total, label, color, size = 90 }: {
   const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
   const trackColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.07)'
 
-  const data = {
+ const data = {
     datasets: [{
       data: [value, Math.max(total - value, 0)],
       backgroundColor: [color, trackColor],
@@ -71,7 +76,7 @@ function DonutChart({ value, total, label, color, size = 90 }: {
       hoverOffset: 6,
       centerText: `${pct}%`,
       centerColor: color,
-    }]
+    } as any] 
   }
 
   return (
