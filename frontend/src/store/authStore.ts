@@ -12,6 +12,10 @@ interface UserDto {
   role: 'Admin' | 'Developer' | 'Viewer'
   avatarUrl?: string
   lastLoginAt?: string
+  isActive: boolean
+  isEmailConfirmed: boolean
+  receiveBuildEmails: boolean
+  notifPopupShown: boolean
 }
 
 interface AuthState {
@@ -20,11 +24,13 @@ interface AuthState {
   refreshToken: string | null
   isAuthenticated: boolean
 
-  login:    (emailOrUsername: string, password: string) => Promise<void>
-  register: (username: string, email: string, password: string, fullName?: string) => Promise<void>
-  logout:   () => Promise<void>
-  refresh:  () => Promise<boolean>
-  updateUser: (user: UserDto) => void
+  login:      (emailOrUsername: string, password: string) => Promise<void>
+  register:   (username: string, email: string, password: string, fullName?: string) => Promise<{ needsConfirmation: boolean; message?: string }>
+  logout:     () => Promise<void>
+  refresh:    () => Promise<boolean>
+  updateUser: (user: Partial<UserDto>) => void
+  setNotifPref: (receive: boolean) => Promise<void>
+  markPopupShown: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -45,8 +51,12 @@ export const useAuthStore = create<AuthState>()(
       register: async (username, email, password, fullName = '') => {
         const { data } = await axios.post(`${API_BASE}/api/auth/register`, { username, email, password, fullName })
         if (!data.success) throw new Error(data.error)
+        if (data.needsEmailConfirmation) {
+          return { needsConfirmation: true, message: data.message }
+        }
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true })
         setAxiosToken(data.accessToken)
+        return { needsConfirmation: false }
       },
 
       logout: async () => {
@@ -70,7 +80,17 @@ export const useAuthStore = create<AuthState>()(
         } catch { return false }
       },
 
-      updateUser: (user) => set({ user }),
+      updateUser: (partial) => set(s => ({ user: s.user ? { ...s.user, ...partial } : null })),
+
+      setNotifPref: async (receive) => {
+        await axios.put(`${API_BASE}/api/auth/notification-pref`, { receive })
+        get().updateUser({ receiveBuildEmails: receive, notifPopupShown: true })
+      },
+
+      markPopupShown: async () => {
+        await axios.put(`${API_BASE}/api/auth/popup-shown`)
+        get().updateUser({ notifPopupShown: true })
+      },
     }),
     {
       name: 'pipeline-auth',
@@ -79,18 +99,15 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
-// Axios interceptor — her istekte token ekle, 401'de refresh dene
 export function setAxiosToken(token: string | null) {
   if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   else delete axios.defaults.headers.common['Authorization']
 }
 
-// Token'ı uygulama açılışında yeniden yükle
 export function initAuth() {
   const state = useAuthStore.getState()
   if (state.accessToken) setAxiosToken(state.accessToken)
 
-  // 401 interceptor
   axios.interceptors.response.use(
     res => res,
     async err => {

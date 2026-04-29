@@ -1,24 +1,33 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Eye, EyeSlash, Lightning, User, Lock, EnvelopeSimple, IdentificationCard } from '@phosphor-icons/react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Eye, EyeSlash, Lightning, User, Lock, EnvelopeSimple, IdentificationCard, CheckCircle } from '@phosphor-icons/react'
 import { useAuthStore } from '../store/authStore'
 
 type Mode = 'login' | 'register'
 
 export default function LoginPage() {
   const navigate   = useNavigate()
+  const [params]   = useSearchParams()
   const { login, register: reg } = useAuthStore()
-  const [mode,   setMode]   = useState<Mode>('login')
-  const [form,   setForm]   = useState({ username:'', email:'', password:'', fullName:'' })
-  const [showPw, setShowPw] = useState(false)
-  const [error,  setError]  = useState('')
-  const [loading,setLoading]= useState(false)
+  const [mode,    setMode]    = useState<Mode>('login')
+  const [form,    setForm]    = useState({ username:'', email:'', password:'', fullName:'' })
+  const [showPw,  setShowPw]  = useState(false)
+  const [error,   setError]   = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })); setError('') }
+  useEffect(() => {
+    if (params.get('confirmed') === '1')
+      setSuccess('Email adresiniz onaylandı! Şimdi giriş yapabilirsiniz.')
+    if (params.get('error') === 'invalid_token')
+      setError('Geçersiz veya süresi dolmuş onay linki.')
+  }, [])
+
+  function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })); setError(''); setSuccess('') }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true); setError('')
+    setLoading(true); setError(''); setSuccess('')
     try {
       if (mode === 'login') {
         await login(form.email || form.username, form.password)
@@ -26,11 +35,14 @@ export default function LoginPage() {
       } else {
         if (!form.username || !form.email || !form.password)
           return setError('Tüm alanlar zorunlu.')
-        await reg(form.username, form.email, form.password, form.fullName)
-        setMode('login')
-        setForm({ username:'', email:'', password:'', fullName:'' })
-        setError('')
-        alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.')
+        const result = await reg(form.username, form.email, form.password, form.fullName)
+        if (result.needsConfirmation) {
+          setMode('login')
+          setForm({ username:'', email:'', password:'', fullName:'' })
+          setSuccess(result.message ?? 'Kayıt başarılı! Email adresinizi onaylayın.')
+        } else {
+          navigate('/')
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Bir hata oluştu.')
@@ -130,6 +142,13 @@ export default function LoginPage() {
                 </button>
               </div>
             </Field>
+
+            {/* Success */}
+            {success && (
+              <div style={{ background:'rgba(74,222,128,.1)', border:'1px solid rgba(74,222,128,.25)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'var(--g)', display:'flex', alignItems:'center', gap:8 }}>
+                <CheckCircle size={16} weight="fill" /> {success}
+              </div>
+            )}
 
             {/* Error */}
             {error && (

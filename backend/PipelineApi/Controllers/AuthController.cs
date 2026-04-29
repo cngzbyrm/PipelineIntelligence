@@ -11,7 +11,6 @@ public class AuthController(AuthService auth) : ControllerBase
 {
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
 
-    // ── POST /api/auth/register ───────────────────────────────────────────────
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
     {
@@ -25,7 +24,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(result);
     }
 
-    // ── POST /api/auth/login ──────────────────────────────────────────────────
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest req)
     {
@@ -34,7 +32,20 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(result);
     }
 
-    // ── POST /api/auth/refresh ────────────────────────────────────────────────
+    // ── Email onayı ────────────────────────────────────────────────────────────
+    [HttpGet("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string token)
+    {
+        var result = await auth.ConfirmEmailAsync(token);
+        if (!result.Success)
+        {
+            // Frontend'e hata sayfasına yönlendir
+            return Redirect($"http://194.99.74.2:8090/login?error=invalid_token");
+        }
+        // Başarılıysa login sayfasına yönlendir, token ile otomatik login yapılabilir
+        return Redirect($"http://194.99.74.2:8090/login?confirmed=1");
+    }
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest req)
     {
@@ -43,7 +54,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(result);
     }
 
-    // ── POST /api/auth/logout ─────────────────────────────────────────────────
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout([FromBody] RefreshRequest req)
@@ -52,7 +62,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(new { success = true });
     }
 
-    // ── GET /api/auth/me ──────────────────────────────────────────────────────
     [HttpGet("me")]
     [Authorize]
     public async Task<IActionResult> Me()
@@ -62,7 +71,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(new UserDto(user));
     }
 
-    // ── PUT /api/auth/profile ─────────────────────────────────────────────────
     [HttpPut("profile")]
     [Authorize]
     public async Task<IActionResult> UpdateProfile([FromBody] ProfileRequest req)
@@ -72,7 +80,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(result.User);
     }
 
-    // ── PUT /api/auth/password ────────────────────────────────────────────────
     [HttpPut("password")]
     [Authorize]
     public async Task<IActionResult> ChangePassword([FromBody] PasswordRequest req)
@@ -82,7 +89,24 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(new { success = true });
     }
 
-    // ── GET /api/auth/users (Admin only) ─────────────────────────────────────
+    // ── Build mail tercihi ─────────────────────────────────────────────────────
+    [HttpPut("notification-pref")]
+    [Authorize]
+    public async Task<IActionResult> SetNotifPref([FromBody] NotifPrefRequest req)
+    {
+        await auth.SetBuildEmailPrefAsync(CurrentUserId, req.Receive);
+        return Ok(new { success = true });
+    }
+
+    [HttpPut("popup-shown")]
+    [Authorize]
+    public async Task<IActionResult> SetPopupShown()
+    {
+        await auth.SetPopupShownAsync(CurrentUserId);
+        return Ok(new { success = true });
+    }
+
+    // ── Admin endpoints ────────────────────────────────────────────────────────
     [HttpGet("users")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetUsers()
@@ -91,7 +115,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(users.Select(u => new UserDto(u)));
     }
 
-    // ── PUT /api/auth/users/{id}/role (Admin only) ────────────────────────────
     [HttpPut("users/{id}/role")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetRole(int id, [FromBody] RoleRequest req)
@@ -101,7 +124,6 @@ public class AuthController(AuthService auth) : ControllerBase
         return Ok(new { success = true });
     }
 
-    // ── PUT /api/auth/users/{id}/active (Admin only) ──────────────────────────
     [HttpPut("users/{id}/active")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> SetActive(int id, [FromBody] ActiveRequest req)
@@ -119,3 +141,4 @@ public record ProfileRequest(string FullName, string? AvatarUrl);
 public record PasswordRequest(string Current, string New);
 public record RoleRequest(string Role);
 public record ActiveRequest(bool IsActive);
+public record NotifPrefRequest(bool Receive);

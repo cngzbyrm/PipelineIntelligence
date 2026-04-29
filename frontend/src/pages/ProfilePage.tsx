@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { User, Lock, Shield, SignOut, Camera } from '@phosphor-icons/react'
+import { User, Lock, Shield, SignOut, Camera, Bell } from '@phosphor-icons/react'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -13,7 +13,7 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 export default function ProfilePage() {
-  const { user, logout, updateUser } = useAuthStore()
+  const { user, logout, updateUser, setNotifPref } = useAuthStore()
   const navigate = useNavigate()
   const [tab, setTab]     = useState<'profile'|'password'|'security'>('profile')
   const [form, setForm]   = useState({ fullName: user?.fullName ?? '', avatarUrl: user?.avatarUrl ?? '' })
@@ -183,6 +183,40 @@ export default function ProfilePage() {
                     <div style={{ fontSize:13, fontWeight:600, color:'var(--tx)', marginBottom:4 }}>Rol</div>
                     <div style={{ fontSize:12, color: ROLE_COLORS[user?.role ?? ''] }}>
                       {user?.role === 'Admin' ? '👑 Admin — Tam erişim' : user?.role === 'Developer' ? '⚡ Developer — Build & analiz' : '👁 Viewer — Sadece görüntüleme'}
+                    </div>
+                  </div>
+
+                  {/* Build mail tercihi */}
+                  <div style={{ padding:'14px 16px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid var(--glass-bdr)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                      <Bell size={16} weight="duotone" color="var(--teal)" />
+                      <div>
+                        <div style={{ fontSize:13, fontWeight:600, color:'var(--tx)' }}>Build Email Bildirimleri</div>
+                        <div style={{ fontSize:11, color:'var(--mt)', marginTop:2 }}>Build/deploy sonuçları email ile bildirilsin</div>
+                      </div>
+                    </div>
+                    {/* Toggle switch */}
+                    <div
+                      onClick={async () => { await setNotifPref(!user?.receiveBuildEmails) }}
+                      style={{
+                        width:44, height:24, borderRadius:12, cursor:'pointer', transition:'background .2s', flexShrink:0,
+                        background: user?.receiveBuildEmails ? 'var(--teal)' : 'rgba(255,255,255,.12)',
+                        position:'relative',
+                      }}
+                    >
+                      <div style={{
+                        position:'absolute', top:3, left: user?.receiveBuildEmails ? 23 : 3,
+                        width:18, height:18, borderRadius:'50%', background:'#fff', transition:'left .2s',
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Email onay durumu */}
+                  <div style={{ padding:'14px 16px', borderRadius:10, background:'rgba(255,255,255,.04)', border:'1px solid var(--glass-bdr)' }}>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--tx)', marginBottom:4 }}>Email Durumu</div>
+                    <div style={{ fontSize:12, display:'flex', alignItems:'center', gap:6,
+                      color: user?.isEmailConfirmed ? 'var(--g)' : 'var(--y)' }}>
+                      {user?.isEmailConfirmed ? '✅ Onaylandı' : '⏳ Onay bekleniyor'}
                     </div>
                   </div>
                 </div>

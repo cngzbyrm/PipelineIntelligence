@@ -1,23 +1,22 @@
 using System.Net;
 using System.Net.Mail;
-using PipelineApi.Data;
 
 namespace PipelineApi.Services;
 
-public class EmailService(SettingsService settings, AppDbContext db)
+public class EmailService(SettingsService settings)
 {
-    public async Task SendAsync(string subject, string body, string? toOverride = null)
+    // ── Belirli adrese gönder ─────────────────────────────────────────────────
+    public async Task SendToAsync(string toEmail, string subject, string html)
     {
         try
         {
-            var host     = await settings.GetAsync("email.host",     "smtp.gmail.com");
-            var port     = int.Parse(await settings.GetAsync("email.port", "587"));
-            var user     = await settings.GetAsync("email.user",     "");
-            var pass     = await settings.GetAsync("email.password", "");
-            var from     = await settings.GetAsync("email.from",     user);
-            var to       = toOverride ?? await settings.GetAsync("email.to", "");
+            var host = await settings.GetAsync("email.host", "smtp.gmail.com");
+            var port = int.Parse(await settings.GetAsync("email.port", "587"));
+            var user = await settings.GetAsync("email.user", "");
+            var pass = await settings.GetAsync("email.password", "");
+            var from = await settings.GetAsync("email.from", user);
 
-            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass) || string.IsNullOrEmpty(to))
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass) || string.IsNullOrEmpty(toEmail))
             {
                 Console.WriteLine("Email config eksik, gönderilmedi.");
                 return;
@@ -25,22 +24,22 @@ public class EmailService(SettingsService settings, AppDbContext db)
 
             using var client = new SmtpClient(host, port)
             {
-                Credentials  = new NetworkCredential(user, pass),
-                EnableSsl    = true,
+                Credentials = new NetworkCredential(user, pass),
+                EnableSsl = true,
                 DeliveryMethod = SmtpDeliveryMethod.Network,
             };
 
             var msg = new MailMessage
             {
-                From       = new MailAddress(from, "Pipeline Intelligence"),
-                Subject    = subject,
-                Body       = body,
+                From = new MailAddress(from, "Pipeline Intelligence"),
+                Subject = subject,
+                Body = html,
                 IsBodyHtml = true,
             };
-            msg.To.Add(to);
+            msg.To.Add(toEmail);
 
             await client.SendMailAsync(msg);
-            Console.WriteLine($"Email gönderildi: {to}");
+            Console.WriteLine($"Email gönderildi: {toEmail}");
         }
         catch (Exception ex)
         {
@@ -48,12 +47,19 @@ public class EmailService(SettingsService settings, AppDbContext db)
         }
     }
 
-    public async Task SendBuildNotificationAsync(string job, string result, string buildId, string? details = null)
+    // ── Settings'teki varsayılan adrese gönder ────────────────────────────────
+    public async Task SendAsync(string subject, string body, string? toOverride = null)
     {
-        var emoji  = result == "SUCCESS" ? "✅" : result == "FAILURE" ? "❌" : result == "UNSTABLE" ? "⚠️" : "🔵";
-        var color  = result == "SUCCESS" ? "#16a34a" : result == "FAILURE" ? "#dc2626" : result == "UNSTABLE" ? "#d97706" : "#2563eb";
-        var subject = $"{emoji} [{result}] {job} — Pipeline Intelligence";
+        var to = toOverride ?? await settings.GetAsync("email.to", "");
+        await SendToAsync(to, subject, body);
+    }
 
+    // ── Build bildirimi — belirli adrese ──────────────────────────────────────
+    public async Task SendBuildNotificationToAsync(string toEmail, string job, string result, string buildId, string? details = null)
+    {
+        var emoji = result == "SUCCESS" ? "✅" : result == "FAILURE" ? "❌" : result == "UNSTABLE" ? "⚠️" : "🔵";
+        var color = result == "SUCCESS" ? "#16a34a" : result == "FAILURE" ? "#dc2626" : result == "UNSTABLE" ? "#d97706" : "#2563eb";
+        var subject = $"{emoji} [{result}] {job} — Pipeline Intelligence";
         var html = $"""
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
               <div style="background:{color};padding:20px;color:white">
@@ -74,7 +80,14 @@ public class EmailService(SettingsService settings, AppDbContext db)
               </div>
             </div>
             """;
+        await SendToAsync(toEmail, subject, html);
+    }
 
-        await SendAsync(subject, html);
+    // ── Build bildirimi — settings'teki varsayılan adrese ─────────────────────
+    public async Task SendBuildNotificationAsync(string job, string result, string buildId, string? details = null)
+    {
+        var to = await settings.GetAsync("email.to", "");
+        if (!string.IsNullOrEmpty(to))
+            await SendBuildNotificationToAsync(to, job, result, buildId, details);
     }
 }
