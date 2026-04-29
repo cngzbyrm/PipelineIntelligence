@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { PresentationChart } from '@phosphor-icons/react'
 import { Doughnut } from 'react-chartjs-2'
 import {
-  Chart as ChartJS, ArcElement, Tooltip, Legend
+  Chart as ChartJS, ArcElement, Tooltip, DoughnutController,Legend
 } from 'chart.js'
 import { dashboardApi } from '../services/api'
 import type { TrendPoint, HeatmapEntry, SonarEntry, Prediction } from '../types'
@@ -13,7 +13,7 @@ declare module 'chart.js' {
     centerColor?: string;
   }
 }
-//ChartJS.register(ArcElement, Tooltip, Legend)
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 const JOBS = ['Shell.OneHub.UI','NishCMS.BackOffice','NishCMS.Store','Nish.Store.Api','Shell.OneHub.Core','ForkLiftFrontEnd']
 
