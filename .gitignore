@@ -15,3 +15,5 @@ build/
 
 # Diğer
 .DS_Store
+
+backend/PipelineApi/appsettings.json
