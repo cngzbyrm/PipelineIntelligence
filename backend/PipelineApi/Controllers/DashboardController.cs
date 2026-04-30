@@ -31,8 +31,8 @@ public class DashboardController(
     {
         await settings.SetManyAsync(new()
         {
-            ["jenkins.url"]   = cfg.Url,
-            ["jenkins.user"]  = cfg.User,
+            ["jenkins.url"] = cfg.Url,
+            ["jenkins.user"] = cfg.User,
             ["jenkins.token"] = cfg.Token,
         }, "jenkins");
         jenkins.InvalidateConfig();
@@ -46,7 +46,7 @@ public class DashboardController(
         await settings.SetManyAsync(new()
         {
             ["ai.apikey"] = dto.ApiKey,
-            ["ai.model"]  = dto.Model,
+            ["ai.model"] = dto.Model,
         }, "ai");
         ai.InvalidateConfig();
         await audit.LogAsync("CONFIG_UPDATE", "ai", $"Model={dto.Model}");
@@ -129,10 +129,10 @@ public class DashboardController(
     {
         db.BuildNotes.Add(new BuildNote
         {
-            Job       = req.Job,
-            BuildId   = req.BuildId,
-            Note      = req.Note,
-            Author    = req.Author,
+            Job = req.Job,
+            BuildId = req.BuildId,
+            Note = req.Note,
+            Author = req.Author,
             CreatedAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
@@ -160,7 +160,7 @@ public class DashboardController(
             if (cached != null) { cached.FromMemory = true; return Ok(cached); }
         }
 
-        var log        = await jenkins.FetchConsoleLogAsync(req.Job, req.BuildId);
+        var log = await jenkins.FetchConsoleLogAsync(req.Job, req.BuildId);
         var errorLines = string.Join('\n', log.Split('\n')
             .Where(l => System.Text.RegularExpressions.Regex.IsMatch(l, "error|fail|exception", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
             .Take(50));
@@ -245,7 +245,7 @@ public class DashboardController(
         return Ok(Enumerable.Range(0, 30).Select(i =>
         {
             var d = DateTime.Now.AddDays(-29 + i);
-            return new TrendPoint { Label = d.ToString("MMM dd"), Pass = rng.Next(2,7), Fail = rng.Next(0,3) };
+            return new TrendPoint { Label = d.ToString("MMM dd"), Pass = rng.Next(2, 7), Fail = rng.Next(0, 3) };
         }).ToList());
     }
 
@@ -253,15 +253,15 @@ public class DashboardController(
     public IActionResult GetHeatmap()
     {
         var rng = new Random(99);
-        return Ok(Enumerable.Range(0,24).Select(h => new HeatmapEntry { Hour = h, FailCount = rng.Next(0,9) }).ToList());
+        return Ok(Enumerable.Range(0, 24).Select(h => new HeatmapEntry { Hour = h, FailCount = rng.Next(0, 9) }).ToList());
     }
 
     [HttpGet("analytics/top-files")]
     public IActionResult GetTopFiles()
     {
-        var files = new[] { "InvoiceService.cs","CustomerRepository.cs","ProductController.cs","OrderService.cs","PaymentGateway.cs","AuthService.cs" };
-        var rng   = new Random(7);
-        return Ok(files.Select(f => new TopFile { Name = f, Count = rng.Next(1,13) }).OrderByDescending(f => f.Count).Take(6).ToList());
+        var files = new[] { "InvoiceService.cs", "CustomerRepository.cs", "ProductController.cs", "OrderService.cs", "PaymentGateway.cs", "AuthService.cs" };
+        var rng = new Random(7);
+        return Ok(files.Select(f => new TopFile { Name = f, Count = rng.Next(1, 13) }).OrderByDescending(f => f.Count).Take(6).ToList());
     }
 
     [HttpGet("analytics/sonar")]
@@ -278,21 +278,43 @@ public class DashboardController(
         var builds = await jenkins.FetchAllBuildsAsync();
         return Ok(builds.Select(b => new Prediction
         {
-            Job    = b.Job,
-            Risk   = b.Result == "FAILURE" ? "HIGH" : b.Result == "UNSTABLE" ? "MED" : "LOW",
+            Job = b.Job,
+            Risk = b.Result == "FAILURE" ? "HIGH" : b.Result == "UNSTABLE" ? "MED" : "LOW",
             Reason = b.Result == "FAILURE" ? "Son build başarısız." : b.Result == "UNSTABLE" ? "Bazı testler başarısız." : "Stabil."
         }).ToList());
     }
 
-    [HttpGet("analytics/history/{job}")]
-    public IActionResult GetTestHistory(string job)
+    [HttpGet("analytics/history/{*job}")]
+    public async Task<IActionResult> GetTestHistory(string job, [FromQuery] int count = 30)
     {
-        var rng = new Random(job.GetHashCode());
-        return Ok(Enumerable.Range(1,30).Select(i => new TestHistoryPoint
+        var decoded = Uri.UnescapeDataString(job);
+        var builds = await jenkins.FetchAllBuildsAsync();
+        var match = builds.FirstOrDefault(b =>
+            string.Equals(b.Job, decoded, StringComparison.OrdinalIgnoreCase));
+
+        if (match == null)
+            return Ok(new List<TestHistoryPoint>());
+
+        var baseUrl = await settings.GetAsync("jenkins.url", "http://194.99.74.2:8080");
+        var jobUrl = (match.JobUrl ?? "").TrimEnd('/');
+
+        // lastBuild veya build numarası varsa temizle
+        jobUrl = System.Text.RegularExpressions.Regex.Replace(jobUrl, @"/(lastBuild|\d+)$", "");
+
+        // Base URL'i çıkar → job/Foo/job/Bar
+        var jobPath = jobUrl.Replace(baseUrl, "").TrimStart('/').TrimEnd('/');
+
+        // Path boşsa job adından oluştur: "Shell.OneHub.UI / test" → "job/Shell.OneHub.UI/job/test"
+        if (string.IsNullOrEmpty(jobPath))
         {
-            BuildNumber = i,
-            Status      = rng.NextDouble() > 0.25 ? "pass" : rng.NextDouble() > 0.5 ? "fail" : "skip"
-        }).ToList());
+            var parts = decoded.Split(" / ", StringSplitOptions.TrimEntries);
+            jobPath = "job/" + string.Join("/job/", parts.Select(Uri.EscapeDataString));
+        }
+
+        Console.WriteLine($"[History] Job: {decoded} → Path: {jobPath}");
+
+        var history = await jenkins.FetchTestHistoryAsync(jobPath, count);
+        return Ok(history);
     }
 
     // ── Timeline ─────────────────────────────────────────────────────────────
@@ -303,11 +325,11 @@ public class DashboardController(
         // DB'den notları da ekle
         var events = builds.Select(b => new TimelineEvent
         {
-            Title     = b.Building ? $"{b.Job} çalışıyor..." : $"{b.Job} → {(b.Result == "SUCCESS" ? "✅ başarılı" : b.Result == "FAILURE" ? "❌ başarısız" : b.Result ?? "?")}",
-            User      = b.TriggerUser ?? "sistem",
-            Env       = "test",
-            TimeAgo   = TimeAgo(b.Timestamp),
-            Color     = b.Building ? "blue" : b.Result == "SUCCESS" ? "green" : b.Result == "FAILURE" ? "red" : "yellow",
+            Title = b.Building ? $"{b.Job} çalışıyor..." : $"{b.Job} → {(b.Result == "SUCCESS" ? "✅ başarılı" : b.Result == "FAILURE" ? "❌ başarısız" : b.Result ?? "?")}",
+            User = b.TriggerUser ?? "sistem",
+            Env = "test",
+            TimeAgo = TimeAgo(b.Timestamp),
+            Color = b.Building ? "blue" : b.Result == "SUCCESS" ? "green" : b.Result == "FAILURE" ? "red" : "yellow",
             Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(b.Timestamp).DateTime,
         }).OrderByDescending(e => e.Timestamp).ToList();
         return Ok(events);
@@ -357,10 +379,10 @@ public class DashboardController(
     {
         if (ts == 0) return "—";
         var diff = (long)(DateTime.UtcNow - DateTimeOffset.FromUnixTimeMilliseconds(ts).UtcDateTime).TotalSeconds;
-        if (diff < 60)    return $"{diff}s önce";
-        if (diff < 3600)  return $"{diff/60}dk önce";
-        if (diff < 86400) return $"{diff/3600}sa önce";
-        return $"{diff/86400}g önce";
+        if (diff < 60) return $"{diff}s önce";
+        if (diff < 3600) return $"{diff / 60}dk önce";
+        if (diff < 86400) return $"{diff / 3600}sa önce";
+        return $"{diff / 86400}g önce";
     }
 }
 

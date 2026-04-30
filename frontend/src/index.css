@@ -363,20 +363,31 @@ svg {
 }
 
 .sel {
-    padding: 7px 11px;
+    padding: 7px 32px 7px 11px;
     border: 1px solid var(--glass-bdr);
     border-radius: 8px;
     font-size: 12px;
     background: var(--glass);
     color: var(--tx);
     outline: none;
-    font-family: 'Inter',sans-serif;
+    font-family: 'Inter', sans-serif;
     cursor: pointer;
     backdrop-filter: blur(8px);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color .15s, box-shadow .15s;
 }
 
+    .sel:hover {
+        border-color: var(--teal);
+    }
+
     .sel:focus {
-        border-color: var(--acc-bdr)
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(45,212,191,.15);
     }
 
 /* ── BUTTONS ───────────────────────────────────────────── */
@@ -2169,8 +2180,10 @@ tbody td {
 
 /* ── SELECT override for glass ─────────────────────────── */
 select option {
-    background: #0d1f2d;
-    color: var(--tx)
+    background: var(--sel-opt-bg, #0d1f2d);
+    color: var(--tx);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
 }
 
 /* ── BUILD TABLE V2 ────────────────────────────────────── */
@@ -2202,4 +2215,141 @@ select option {
     align-items: center;
     gap: 4px;
     flex-shrink: 0;
+}
+
+/* ── MOBILE RESPONSIVE ─────────────────────────────────── */
+@media (max-width: 768px) {
+
+    /* Header */
+    .header {
+        padding: 0 12px;
+        gap: 8px;
+    }
+
+    .nav {
+        display: none;
+    }
+
+    .logo-text {
+        display: none;
+    }
+
+    .logo {
+        gap: 0;
+    }
+
+    /* Page */
+    .page-wrap {
+        padding: 12px;
+    }
+
+    /* Stat cards — 2 kolonlu grid */
+    .scards {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px;
+    }
+
+    /* Build list */
+    .brow-v2 {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .brow-v2-acts {
+        width: 100%;
+        justify-content: flex-end;
+        border-top: 1px solid var(--glass-bdr);
+        padding-top: 8px;
+        margin-top: 2px;
+    }
+
+    /* Filter bar */
+    .fbar {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    /* Main grid */
+    .mg {
+        grid-template-columns: 1fr !important;
+    }
+
+    .sbar {
+        display: none;
+    }
+
+    /* Analytics */
+    .agrid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Cards */
+    .card {
+        border-radius: 10px;
+    }
+
+    /* Modal */
+    .lm {
+        width: 98vw !important;
+        margin: 4px !important;
+        max-height: 96vh;
+    }
+
+    .lmbg {
+        padding: 4px;
+    }
+
+    /* Sonar */
+    .sonar-g {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Heatmap */
+    .hm-grid {
+        gap: 2px;
+    }
+
+    .hm-cell {
+        width: 10px !important;
+        height: 10px !important;
+    }
+
+    /* Pill */
+    .pill-live .shiny-text {
+        font-size: 9px;
+    }
+
+    /* Header right — sıkıştır */
+    .hright {
+        gap: 4px;
+    }
+
+        .hright > span {
+            display: none;
+        }
+}
+
+@media (max-width: 480px) {
+    .scards {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px;
+    }
+
+    .sc {
+        padding: 12px 10px;
+    }
+
+    .sval {
+        font-size: 24px !important;
+    }
+
+    .page-title {
+        font-size: 18px !important;
+    }
+
+    .fbtn {
+        padding: 5px 8px;
+        font-size: 10px;
+    }
 }

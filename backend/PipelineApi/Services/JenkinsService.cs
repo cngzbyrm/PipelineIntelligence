@@ -7,9 +7,9 @@ namespace PipelineApi.Services;
 
 public class JenkinsService(IHttpClientFactory httpFactory, SettingsService settings)
 {
-    private bool   _configDirty = true;
-    private string _url   = "";
-    private string _user  = "";
+    private bool _configDirty = true;
+    private string _url = "";
+    private string _user = "";
     private string _token = "";
 
     public void InvalidateConfig() => _configDirty = true;
@@ -17,10 +17,76 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
     private async Task EnsureConfigAsync()
     {
         if (!_configDirty) return;
-        _url   = await settings.GetAsync("jenkins.url",   "http://194.99.74.2:8080");
-        _user  = await settings.GetAsync("jenkins.user",  "admin");
+        _url = await settings.GetAsync("jenkins.url", "http://194.99.74.2:8080");
+        _user = await settings.GetAsync("jenkins.user", "admin");
         _token = await settings.GetAsync("jenkins.token", "");
         _configDirty = false;
+    }
+
+    // ── Test Geçmişi — son N build'in test sonuçlarını çek ────────────────────
+    public async Task<List<TestHistoryPoint>> FetchTestHistoryAsync(string jobPath, int count = 30)
+    {
+        await EnsureConfigAsync();
+        var result = new List<TestHistoryPoint>();
+        try
+        {
+            using var client = CreateClient();
+            // Önce job'un build listesini çek
+            var listUrl = $"{_url}/{jobPath.TrimEnd('/')}/api/json?tree=builds[number,result,timestamp,duration,actions[testReport[passCount,failCount,skipCount]]]{{0,{count}}}";
+            var resp = await client.GetAsync(listUrl);
+            if (!resp.IsSuccessStatusCode) return result;
+
+            var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync()).RootElement;
+            if (!doc.TryGetProperty("builds", out var builds)) return result;
+
+            foreach (var b in builds.EnumerateArray())
+            {
+                var number = b.TryGetProperty("number", out var n) ? n.GetInt32() : 0;
+                var resultStr = b.TryGetProperty("result", out var r) && r.ValueKind != JsonValueKind.Null ? r.GetString() : null;
+                var timestamp = b.TryGetProperty("timestamp", out var ts) ? ts.GetInt64() : 0;
+                var duration = b.TryGetProperty("duration", out var d) ? d.GetInt64() : 0;
+
+                int pass = 0, fail = 0, skip = 0;
+                if (b.TryGetProperty("actions", out var actions))
+                    foreach (var a in actions.EnumerateArray())
+                        if (a.TryGetProperty("testReport", out var tr))
+                        {
+                            pass = tr.TryGetProperty("passCount", out var p) ? p.GetInt32() : 0;
+                            fail = tr.TryGetProperty("failCount", out var f) ? f.GetInt32() : 0;
+                            skip = tr.TryGetProperty("skipCount", out var s) ? s.GetInt32() : 0;
+                        }
+
+                // Status belirle
+                string status;
+                if (resultStr == "SUCCESS") status = pass > 0 || fail == 0 ? "pass" : "skip";
+                else if (resultStr == "FAILURE") status = "fail";
+                else if (resultStr == "UNSTABLE") status = fail > 0 ? "fail" : "skip";
+                else status = "skip";
+
+                // Başarısız build için hata nedenini çek
+                string failReason = "";
+                if (status == "fail" && number > 0)
+                {
+                    try { failReason = await FetchBuildFailReasonAsync(jobPath, number.ToString()); }
+                    catch { }
+                }
+
+                result.Add(new TestHistoryPoint
+                {
+                    BuildNumber = number,
+                    Status = status,
+                    PassCount = pass,
+                    FailCount = fail,
+                    SkipCount = skip,
+                    Duration = duration,
+                    Timestamp = timestamp,
+                    Result = resultStr ?? "UNKNOWN",
+                    FailReason = failReason,
+                });
+            }
+        }
+        catch { }
+        return result;
     }
 
     public async Task<List<BuildResult>> FetchAllBuildsAsync()
@@ -40,8 +106,8 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
             var tasks = new List<Task<List<BuildResult>>>();
             foreach (var job in jobs.EnumerateArray())
             {
-                var name   = Str(job, "name");
-                var cls    = Str(job, "_class");
+                var name = Str(job, "name");
+                var cls = Str(job, "_class");
                 var jobUrl = Fix(Str(job, "url"));
 
                 if (cls.Contains("WorkflowJob"))
@@ -71,7 +137,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
             foreach (var branch in branches.EnumerateArray())
             {
                 var branchName = Str(branch, "name");
-                var branchUrl  = Fix(Str(branch, "url"));
+                var branchUrl = Fix(Str(branch, "url"));
                 tasks.Add(FetchOneAsync(branchUrl, $"{repoName} / {branchName}", "CI/CD", repoName, branchName));
             }
         }
@@ -88,7 +154,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         foreach (var l1 in L1jobs.EnumerateArray())
         {
             var l1Name = Str(l1, "name");
-            var l1Cls  = Str(l1, "_class");
+            var l1Cls = Str(l1, "_class");
 
             if (l1Cls.Contains("WorkflowJob"))
             {
@@ -100,7 +166,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
             foreach (var l2 in L2jobs.EnumerateArray())
             {
                 var l2Name = Str(l2, "name");
-                var l2Cls  = Str(l2, "_class");
+                var l2Cls = Str(l2, "_class");
 
                 if (l2Cls.Contains("WorkflowJob"))
                 {
@@ -112,7 +178,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
                 foreach (var l3 in L3jobs.EnumerateArray())
                 {
                     var l3Name = Str(l3, "name");
-                    var l3Cls  = Str(l3, "_class");
+                    var l3Cls = Str(l3, "_class");
 
                     if (l3Cls.Contains("WorkflowJob"))
                     {
@@ -139,7 +205,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         {
             if (string.IsNullOrEmpty(jobUrl)) return [];
             using var client = CreateClient();
-            var url  = jobUrl.TrimEnd('/') + "/lastBuild/api/json" +
+            var url = jobUrl.TrimEnd('/') + "/lastBuild/api/json" +
                        "?tree=id,result,duration,timestamp,building,url,actions[causes[userId],testReport[passCount,failCount,skipCount]]";
             var resp = await client.GetAsync(url);
             if (!resp.IsSuccessStatusCode) return [];
@@ -155,18 +221,22 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         try
         {
             var doc = JsonDocument.Parse(json).RootElement;
-            var id  = doc.TryGetProperty("id", out var idP) ? idP.GetString() ?? "" : "";
+            var id = doc.TryGetProperty("id", out var idP) ? idP.GetString() ?? "" : "";
             if (string.IsNullOrEmpty(id)) return null;
 
             var b = new BuildResult
             {
-                Job       = label, Id = id, Group = group, SubGroup = subGroup, Branch = branch,
-                JobUrl    = jobUrl,
-                Result    = doc.TryGetProperty("result",    out var r)  && r.ValueKind != JsonValueKind.Null ? r.GetString() : null,
-                Building  = doc.TryGetProperty("building",  out var bl) && bl.GetBoolean(),
-                Duration  = doc.TryGetProperty("duration",  out var d)  ? d.GetInt64()  : 0,
-                Timestamp = doc.TryGetProperty("timestamp", out var t)  ? t.GetInt64()  : 0,
-                Url       = doc.TryGetProperty("url",       out var u)  ? u.GetString() : null,
+                Job = label,
+                Id = id,
+                Group = group,
+                SubGroup = subGroup,
+                Branch = branch,
+                JobUrl = jobUrl,
+                Result = doc.TryGetProperty("result", out var r) && r.ValueKind != JsonValueKind.Null ? r.GetString() : null,
+                Building = doc.TryGetProperty("building", out var bl) && bl.GetBoolean(),
+                Duration = doc.TryGetProperty("duration", out var d) ? d.GetInt64() : 0,
+                Timestamp = doc.TryGetProperty("timestamp", out var t) ? t.GetInt64() : 0,
+                Url = doc.TryGetProperty("url", out var u) ? u.GetString() : null,
             };
 
             if (doc.TryGetProperty("actions", out var actions))
@@ -207,7 +277,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
             var crumbResp = await client.GetAsync($"{_url}/crumbIssuer/api/json");
             if (crumbResp.IsSuccessStatusCode)
             {
-                var crumbDoc   = JsonDocument.Parse(await crumbResp.Content.ReadAsStringAsync()).RootElement;
+                var crumbDoc = JsonDocument.Parse(await crumbResp.Content.ReadAsStringAsync()).RootElement;
                 var crumbField = crumbDoc.TryGetProperty("crumbRequestField", out var cf) ? cf.GetString() : "Jenkins-Crumb";
                 var crumbValue = crumbDoc.TryGetProperty("crumb", out var cv) ? cv.GetString() : "";
                 if (!string.IsNullOrEmpty(crumbValue))
@@ -225,13 +295,57 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         catch (Exception ex) { Console.WriteLine($"Trigger error: {ex.Message}"); return false; }
     }
 
+    public async Task<string> FetchBuildFailReasonAsync(string jobPath, string buildNumber)
+    {
+        try
+        {
+            await EnsureConfigAsync();
+            using var client = CreateClient();
+            var url = $"{_url}/{jobPath}/{buildNumber}/consoleText";
+            Console.WriteLine($"[FailReason] GET {url}");
+            var resp = await client.GetAsync(url);
+            if (!resp.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[FailReason] Failed: {(int)resp.StatusCode}");
+                return "";
+            }
+            var log = await resp.Content.ReadAsStringAsync();
+            var lines = log.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var patterns = new[]
+            {
+                @"ERROR:", @"FAILED", @"Exception:", @"error:",
+                @"Build step.*marked build as failure",
+                @"exit code", @"Process leaked",
+            };
+            foreach (var pattern in patterns)
+            {
+                var match = lines.LastOrDefault(l =>
+                    System.Text.RegularExpressions.Regex.IsMatch(l, pattern,
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase));
+                if (match != null)
+                {
+                    var cleaned = match.Trim();
+                    Console.WriteLine($"[FailReason] Found: {cleaned[..Math.Min(80, cleaned.Length)]}");
+                    return cleaned.Length > 120 ? cleaned[..120] + "..." : cleaned;
+                }
+            }
+            var last = lines.LastOrDefault(l => l.Trim().Length > 10);
+            return last?.Trim() ?? "";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[FailReason] Error: {ex.Message}");
+            return "";
+        }
+    }
+
     public async Task<string> FetchConsoleLogAsync(string job, string buildId)
     {
         try
         {
             await EnsureConfigAsync();
-            var builds  = await FetchAllBuildsAsync();
-            var match   = builds.FirstOrDefault(b => b.Job == job);
+            var builds = await FetchAllBuildsAsync();
+            var match = builds.FirstOrDefault(b => b.Job == job);
             var baseUrl = !string.IsNullOrEmpty(match?.JobUrl) ? match.JobUrl.TrimEnd('/') : BuildJobUrlFallback(job);
             using var client = CreateClient();
             var resp = await client.GetAsync($"{baseUrl}/{buildId}/consoleText");
@@ -245,13 +359,13 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         try
         {
             await EnsureConfigAsync();
-            var builds  = await FetchAllBuildsAsync();
-            var match   = builds.FirstOrDefault(b => b.Job == job);
+            var builds = await FetchAllBuildsAsync();
+            var match = builds.FirstOrDefault(b => b.Job == job);
             var baseUrl = !string.IsNullOrEmpty(match?.JobUrl) ? match.JobUrl.TrimEnd('/') : BuildJobUrlFallback(job);
             using var client = CreateClient();
             var resp = await client.GetAsync($"{baseUrl}/{buildId}/logText/progressiveText?start={start}");
             if (!resp.IsSuccessStatusCode) return ("", start);
-            var text     = await resp.Content.ReadAsStringAsync();
+            var text = await resp.Content.ReadAsStringAsync();
             var newStart = resp.Headers.TryGetValues("X-Text-Size", out var vals) ? int.Parse(vals.First()) : start + text.Length;
             return (text, newStart);
         }
@@ -263,15 +377,15 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         try
         {
             await EnsureConfigAsync();
-            var builds  = await FetchAllBuildsAsync();
-            var match   = builds.FirstOrDefault(b => b.Job == job);
+            var builds = await FetchAllBuildsAsync();
+            var match = builds.FirstOrDefault(b => b.Job == job);
             var baseUrl = !string.IsNullOrEmpty(match?.JobUrl) ? match.JobUrl.TrimEnd('/') : BuildJobUrlFallback(job);
             using var client = CreateClient();
 
             var crumbResp = await client.GetAsync($"{_url}/crumbIssuer/api/json");
             if (crumbResp.IsSuccessStatusCode)
             {
-                var crumbDoc   = JsonDocument.Parse(await crumbResp.Content.ReadAsStringAsync()).RootElement;
+                var crumbDoc = JsonDocument.Parse(await crumbResp.Content.ReadAsStringAsync()).RootElement;
                 var crumbField = crumbDoc.TryGetProperty("crumbRequestField", out var cf) ? cf.GetString() : "Jenkins-Crumb";
                 var crumbValue = crumbDoc.TryGetProperty("crumb", out var cv) ? cv.GetString() : "";
                 if (!string.IsNullOrEmpty(crumbValue))
@@ -282,206 +396,7 @@ public class JenkinsService(IHttpClientFactory httpFactory, SettingsService sett
         }
         catch { return false; }
     }
-   public async Task<InfraStats> GetInfraStatsAsync()
-{
-    await EnsureConfigAsync();
-    using var client = CreateClient();
- 
-    // 1. Önce node listesini al
-    var listJson = await client.GetStringAsync(
-        _url + "/computer/api/json?tree=computer[displayName,offline,idle,numExecutors,assignedLabels[name]],busyExecutors,totalExecutors");
- 
-    using var listDoc = JsonDocument.Parse(listJson);
-    var root      = listDoc.RootElement;
-    var computers = root.GetProperty("computer");
-    var busyExec  = root.TryGetProperty("busyExecutors",  out var be) ? be.GetInt32() : 0;
-    var totalExec = root.TryGetProperty("totalExecutors", out var te) ? te.GetInt32() : 0;
- 
-    // 2. Queue length
-    int queueLen = 0;
-    try
-    {
-        var qResp = await client.GetStringAsync(_url + "/queue/api/json?tree=items[id]");
-        using var qDoc = JsonDocument.Parse(qResp);
-        if (qDoc.RootElement.TryGetProperty("items", out var items))
-            queueLen = items.GetArrayLength();
-    }
-    catch { }
- 
-    // 3. Jenkins version
-    string jenkinsVersion = "—";
-    try
-    {
-        var vResp = await client.GetAsync(_url + "/api/json?tree=version");
-        if (vResp.IsSuccessStatusCode)
-        {
-            using var vDoc = JsonDocument.Parse(await vResp.Content.ReadAsStringAsync());
-            if (vDoc.RootElement.TryGetProperty("version", out var v))
-                jenkinsVersion = v.GetString() ?? "—";
-        }
-    }
-    catch { }
- 
-    // 4. Her node için detaylı bilgiyi ayrı ayrı çek
-    var nodeNames = new List<(string displayName, bool offline, bool idle, int numExec, List<string> labels)>();
-    foreach (var comp in computers.EnumerateArray())
-    {
-        var dn      = comp.TryGetProperty("displayName",   out var d)  ? d.GetString() ?? "" : "";
-        var offline = comp.TryGetProperty("offline",       out var of) ? of.GetBoolean() : true;
-        var idle    = comp.TryGetProperty("idle",          out var id) ? id.GetBoolean() : true;
-        var numExec = comp.TryGetProperty("numExecutors",  out var ne) ? ne.GetInt32()   : 0;
- 
-        var labels = new List<string>();
-        if (comp.TryGetProperty("assignedLabels", out var al))
-            foreach (var lbl in al.EnumerateArray())
-                if (lbl.TryGetProperty("name", out var ln) && ln.GetString() is { } lname && lname != dn)
-                    labels.Add(lname);
- 
-        nodeNames.Add((dn, offline, idle, numExec, labels));
-    }
- 
-    // 5. Her node için /computer/{name}/api/json çek (gerçek monitor verileri burada)
-    var fetchTasks = nodeNames.Select(n => FetchNodeDetailAsync(client, n.displayName, n.offline, n.idle, n.numExec, n.labels));
-    var allNodes   = (await Task.WhenAll(fetchTasks)).ToList();
- 
-    NodeInfo? masterNode = null;
-    var       agentNodes = new List<NodeInfo>();
- 
-    foreach (var node in allNodes)
-    {
-        if (node.Name == "Built-In Node" || node.Name == "master")
-        {
-            node.Name = "Jenkins Master";
-            masterNode = node;
-        }
-        else
-        {
-            agentNodes.Add(node);
-        }
-    }
- 
-    masterNode ??= new NodeInfo { Name = "Jenkins Master", Online = false };
- 
-    return new InfraStats
-    {
-        MasterNode     = masterNode,
-        Nodes          = agentNodes,
-        JenkinsVersion = jenkinsVersion,
-        BusyExecutors  = busyExec,
-        TotalExecutors = totalExec,
-        QueueLength    = queueLen,
-    };
-}
- 
-private async Task<NodeInfo> FetchNodeDetailAsync(
-    HttpClient client, string displayName, bool offline, bool idle, int numExec, List<string> labels)
-{
-    var node = new NodeInfo
-    {
-        Name          = displayName,
-        Online        = !offline,
-        Idle          = idle,
-        Executors     = numExec,
-        FreeExecutors = numExec,
-        Labels        = labels,
-    };
- 
-    if (offline) return node;
- 
-    try
-    {
-        // node adı "Built-In Node" için URL "(built-in)" olur
-        var encodedName = displayName == "Built-In Node" ? "(built-in)" : Uri.EscapeDataString(displayName);
-        var url = _url + $"/computer/{encodedName}/api/json" +
-                  "?tree=numExecutors,idle,monitorData[*[*]]";
- 
-        var resp = await client.GetAsync(url);
-        if (!resp.IsSuccessStatusCode) return node;
- 
-        using var doc  = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
-        var       root = doc.RootElement;
- 
-        if (!root.TryGetProperty("monitorData", out var md)) return node;
- 
-        // CPU — SystemLoadAverageMonitor
-        if (md.TryGetProperty("hudson.node_monitors.SystemLoadAverageMonitor", out var cpuMon)
-            && cpuMon.ValueKind != JsonValueKind.Null
-            && cpuMon.TryGetProperty("average", out var avg))
-        {
-            var load = avg.GetDouble();
-            // Load average'ı CPU % olarak göster (çekirdek sayısına normalize et, max 100)
-            node.CpuPercent = Math.Min(100, (int)Math.Round(load * 25)); // yaklaşık
-        }
- 
-        // RAM — SwapSpaceMonitor
-        if (md.TryGetProperty("hudson.node_monitors.SwapSpaceMonitor", out var ramMon)
-            && ramMon.ValueKind != JsonValueKind.Null)
-        {
-            if (ramMon.TryGetProperty("totalPhysicalMemory", out var tot))
-                node.RamTotalMb = (int)(tot.GetInt64() / (1024 * 1024));
-            if (ramMon.TryGetProperty("availablePhysicalMemory", out var avail))
-                node.RamUsedMb = node.RamTotalMb - (int)(avail.GetInt64() / (1024 * 1024));
-        }
- 
-        // Disk — DiskSpaceMonitor
-        if (md.TryGetProperty("hudson.node_monitors.DiskSpaceMonitor", out var diskMon)
-            && diskMon.ValueKind != JsonValueKind.Null
-            && diskMon.TryGetProperty("size", out var freeBytes))
-        {
-            var freeGb = freeBytes.GetInt64() / (1024.0 * 1024 * 1024);
-            // Jenkins sadece boş alanı döndürür, toplam bilinmiyor
-            // Kullanılan = toplam - boş, toplam için işletim sistemi bilgisiyle tahmin yap
-            node.DiskFreeGb  = (int)freeGb;
-            node.DiskTotalGb = 500; // varsayılan, disk izleme eklentisi olmadan bilinmiyor
-            node.DiskUsedGb  = Math.Max(0, node.DiskTotalGb - (int)freeGb);
-        }
- 
-        // OS — ArchitectureMonitor (string olarak geliyor)
-        if (md.TryGetProperty("hudson.node_monitors.ArchitectureMonitor", out var osMon)
-            && osMon.ValueKind == JsonValueKind.String)
-            node.Os = osMon.GetString() ?? "";
- 
-        // Response time
-        if (md.TryGetProperty("hudson.node_monitors.ResponseTimeMonitor", out var rtMon)
-            && rtMon.ValueKind != JsonValueKind.Null
-            && rtMon.TryGetProperty("average", out var rt))
-            node.ResponseTimeMs = (int)rt.GetDouble();
- 
-        // Free executors
-        if (root.TryGetProperty("numExecutors", out var ne))
-            node.FreeExecutors = ne.GetInt32() - (root.TryGetProperty("idle", out var idleProp) && !idleProp.GetBoolean() ? 1 : 0);
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Node detail fetch error ({displayName}): {ex.Message}");
-    }
- 
-    return node;
-}
- 
-private static NodeInfo ParseNodeInfo(JsonElement comp)
-{
-    var name    = comp.TryGetProperty("displayName",  out var dn) ? dn.GetString() ?? "" : "";
-    var offline = comp.TryGetProperty("offline",      out var of) ? of.GetBoolean() : true;
-    var idle    = comp.TryGetProperty("idle",         out var id) ? id.GetBoolean() : true;
-    var numExec = comp.TryGetProperty("numExecutors", out var ne) ? ne.GetInt32()   : 0;
- 
-    var labels = new List<string>();
-    if (comp.TryGetProperty("assignedLabels", out var al))
-        foreach (var lbl in al.EnumerateArray())
-            if (lbl.TryGetProperty("name", out var ln) && ln.GetString() is { } lname && lname != name)
-                labels.Add(lname);
- 
-    return new NodeInfo
-    {
-        Name          = name,
-        Online        = !offline,
-        Idle          = idle,
-        Executors     = numExec,
-        FreeExecutors = numExec,
-        Labels        = labels,
-    };
-}
+
     private string BuildJobUrlFallback(string job)
     {
         var parts = job.Split(" / ", StringSplitOptions.TrimEntries);
@@ -498,8 +413,10 @@ private static NodeInfo ParseNodeInfo(JsonElement comp)
         var withDur = builds.Where(b => b.Duration > 0).ToList();
         return new DashboardStats
         {
-            Success = pass, Failed = builds.Count(b => b.Result == "FAILURE"),
-            Unstable = builds.Count(b => b.Result == "UNSTABLE"), Running = builds.Count(b => b.Building),
+            Success = pass,
+            Failed = builds.Count(b => b.Result == "FAILURE"),
+            Unstable = builds.Count(b => b.Result == "UNSTABLE"),
+            Running = builds.Count(b => b.Building),
             SuccessRate = total > 0 ? Math.Round(pass * 100.0 / total, 1) : 0,
             AvgDurationMinutes = withDur.Count > 0 ? Math.Round(withDur.Average(b => b.Duration) / 60000.0, 1) : 0,
             Leaderboard = builds.Where(b => b.Result == "FAILURE" && b.TriggerUser != null)
@@ -530,108 +447,310 @@ private static NodeInfo ParseNodeInfo(JsonElement comp)
         }
         return client;
     }
-   public async Task<PipelineStagesResult> GetPipelineStagesAsync(string job, string buildId)
-{
-    await EnsureConfigAsync();
-    using var client = CreateClient();
- 
-    var parts = job.Split(" / ", StringSplitOptions.TrimEntries);
- 
-    // Blue Ocean REST API URL'si
-    // /blue/rest/organizations/jenkins/pipelines/{folder}/pipelines/{repo}/branches/{branch}/runs/{id}/nodes/
-    string blueUrl;
- 
-    if (parts.Length == 2)
+
+    public async Task<PipelineStagesResult> GetPipelineStagesAsync(string job, string buildId)
     {
-        // NishCommerce / test
-        blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/Nabusoft-Projects/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100";
-    }
-    else if (parts.Length == 3)
-    {
-        // ForkLifFrontEnd / test / Deploy-to-...
-        // Deployments klasöründeki job'lar için
-        blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/Deployments/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100";
-    }
-    else
-    {
-        blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/runs/{buildId}/nodes/?limit=100";
-    }
- 
-    Console.WriteLine($"[Stages] Blue Ocean URL: {blueUrl}");
- 
-    var resp = await client.GetAsync(blueUrl);
- 
-    // İlk deneme başarısız olduysa alternatifleri dene
-    if (!resp.IsSuccessStatusCode && parts.Length >= 2)
-    {
-        var alts = new List<string>();
- 
+        await EnsureConfigAsync();
+        using var client = CreateClient();
+
+        var parts = job.Split(" / ", StringSplitOptions.TrimEntries);
+
+        // Blue Ocean REST API URL'si
+        // /blue/rest/organizations/jenkins/pipelines/{folder}/pipelines/{repo}/branches/{branch}/runs/{id}/nodes/
+        string blueUrl;
+
         if (parts.Length == 2)
         {
-            alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
+            // NishCommerce / test
+            blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/Nabusoft-Projects/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100";
         }
         else if (parts.Length == 3)
         {
-            alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/Nabusoft-Projects/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
-            alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
+            // ForkLifFrontEnd / test / Deploy-to-...
+            // Deployments klasöründeki job'lar için
+            blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/Deployments/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100";
         }
- 
-        foreach (var alt in alts)
+        else
         {
-            Console.WriteLine($"[Stages] Retry: {alt}");
-            resp = await client.GetAsync(alt);
-            if (resp.IsSuccessStatusCode) break;
+            blueUrl = $"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/runs/{buildId}/nodes/?limit=100";
         }
-    }
- 
-    if (!resp.IsSuccessStatusCode)
-    {
-        Console.WriteLine($"[Stages] All failed: {(int)resp.StatusCode}");
-        return new PipelineStagesResult { Job = job, BuildId = buildId, Stages = [] };
-    }
- 
-    var json = await resp.Content.ReadAsStringAsync();
-    using var doc = JsonDocument.Parse(json);
-    var nodes = doc.RootElement;
- 
-    var result = new PipelineStagesResult { Job = job, BuildId = buildId, Stages = [] };
- 
-    // Sadece STAGE tipindeki node'ları al (PARALLEL dahil)
-    foreach (var node in nodes.EnumerateArray())
-    {
-        var type   = node.TryGetProperty("type",           out var t) ? t.GetString() ?? "" : "";
-        var name   = node.TryGetProperty("displayName",    out var n) ? n.GetString() ?? "" : "";
-        var status = node.TryGetProperty("result",         out var r) ? r.GetString() ?? "" : "";
-        var state  = node.TryGetProperty("state",          out var st) ? st.GetString() ?? "" : "";
-        var dur    = node.TryGetProperty("durationInMillis", out var d) ? d.GetInt64() : 0;
-        var id     = node.TryGetProperty("id",             out var i) ? i.GetString() ?? "" : "";
-        var startTime = node.TryGetProperty("startTime",   out var s) ? s.GetString() ?? "" : "";
- 
-        // Çalışıyorsa state'i status olarak kullan
-        var effectiveStatus = state == "RUNNING" ? "IN_PROGRESS" : status;
- 
-        result.Stages.Add(new PipelineStage
+
+        Console.WriteLine($"[Stages] Blue Ocean URL: {blueUrl}");
+
+        var resp = await client.GetAsync(blueUrl);
+
+        // İlk deneme başarısız olduysa alternatifleri dene
+        if (!resp.IsSuccessStatusCode && parts.Length >= 2)
         {
-            Id          = id,
-            Name        = name,
-            Status      = effectiveStatus,
-            DurationMs  = dur,
-            StartTimeMs = 0,
-            IsParallel  = type == "PARALLEL",
-            Steps       = [],
-        });
+            var alts = new List<string>();
+
+            if (parts.Length == 2)
+            {
+                alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
+            }
+            else if (parts.Length == 3)
+            {
+                alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/Nabusoft-Projects/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
+                alts.Add($"{_url}/blue/rest/organizations/jenkins/pipelines/{Uri.EscapeDataString(parts[0])}/branches/{Uri.EscapeDataString(parts[1])}/runs/{buildId}/nodes/?limit=100");
+            }
+
+            foreach (var alt in alts)
+            {
+                Console.WriteLine($"[Stages] Retry: {alt}");
+                resp = await client.GetAsync(alt);
+                if (resp.IsSuccessStatusCode) break;
+            }
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"[Stages] All failed: {(int)resp.StatusCode}");
+            return new PipelineStagesResult { Job = job, BuildId = buildId, Stages = [] };
+        }
+
+        var json = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var nodes = doc.RootElement;
+
+        var result = new PipelineStagesResult { Job = job, BuildId = buildId, Stages = [] };
+
+        // Sadece STAGE tipindeki node'ları al (PARALLEL dahil)
+        foreach (var node in nodes.EnumerateArray())
+        {
+            var type = node.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
+            var name = node.TryGetProperty("displayName", out var n) ? n.GetString() ?? "" : "";
+            var status = node.TryGetProperty("result", out var r) ? r.GetString() ?? "" : "";
+            var state = node.TryGetProperty("state", out var st) ? st.GetString() ?? "" : "";
+            var dur = node.TryGetProperty("durationInMillis", out var d) ? d.GetInt64() : 0;
+            var id = node.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
+            var startTime = node.TryGetProperty("startTime", out var s) ? s.GetString() ?? "" : "";
+
+            // Çalışıyorsa state'i status olarak kullan
+            var effectiveStatus = state == "RUNNING" ? "IN_PROGRESS" : status;
+
+            result.Stages.Add(new PipelineStage
+            {
+                Id = id,
+                Name = name,
+                Status = effectiveStatus,
+                DurationMs = dur,
+                StartTimeMs = 0,
+                IsParallel = type == "PARALLEL",
+                Steps = [],
+            });
+        }
+
+        // Genel durumu ilk stage'den al
+        if (result.Stages.Count > 0)
+            result.Status = result.Stages.Any(s => s.Status == "FAILED" || s.Status == "FAILURE") ? "FAILED"
+                          : result.Stages.Any(s => s.Status == "IN_PROGRESS") ? "IN_PROGRESS"
+                          : "SUCCESS";
+
+        result.DurationMs = result.Stages.Sum(s => s.IsParallel ? 0 : s.DurationMs);
+
+        Console.WriteLine($"[Stages] Got {result.Stages.Count} nodes");
+        return result;
     }
- 
-    // Genel durumu ilk stage'den al
-    if (result.Stages.Count > 0)
-        result.Status = result.Stages.Any(s => s.Status == "FAILED" || s.Status == "FAILURE") ? "FAILED"
-                      : result.Stages.Any(s => s.Status == "IN_PROGRESS") ? "IN_PROGRESS"
-                      : "SUCCESS";
- 
-    result.DurationMs = result.Stages.Sum(s => s.IsParallel ? 0 : s.DurationMs);
- 
-    Console.WriteLine($"[Stages] Got {result.Stages.Count} nodes");
-    return result;
-}
- 
+
+
+    public async Task<InfraStats> GetInfraStatsAsync()
+    {
+        await EnsureConfigAsync();
+        using var client = CreateClient();
+
+        // 1. Önce node listesini al
+        var listJson = await client.GetStringAsync(
+            _url + "/computer/api/json?tree=computer[displayName,offline,idle,numExecutors,assignedLabels[name]],busyExecutors,totalExecutors");
+
+        using var listDoc = JsonDocument.Parse(listJson);
+        var root = listDoc.RootElement;
+        var computers = root.GetProperty("computer");
+        var busyExec = root.TryGetProperty("busyExecutors", out var be) ? be.GetInt32() : 0;
+        var totalExec = root.TryGetProperty("totalExecutors", out var te) ? te.GetInt32() : 0;
+
+        // 2. Queue length
+        int queueLen = 0;
+        try
+        {
+            var qResp = await client.GetStringAsync(_url + "/queue/api/json?tree=items[id]");
+            using var qDoc = JsonDocument.Parse(qResp);
+            if (qDoc.RootElement.TryGetProperty("items", out var items))
+                queueLen = items.GetArrayLength();
+        }
+        catch { }
+
+        // 3. Jenkins version
+        string jenkinsVersion = "—";
+        try
+        {
+            var vResp = await client.GetAsync(_url + "/api/json?tree=version");
+            if (vResp.IsSuccessStatusCode)
+            {
+                using var vDoc = JsonDocument.Parse(await vResp.Content.ReadAsStringAsync());
+                if (vDoc.RootElement.TryGetProperty("version", out var v))
+                    jenkinsVersion = v.GetString() ?? "—";
+            }
+        }
+        catch { }
+
+        // 4. Her node için detaylı bilgiyi ayrı ayrı çek
+        var nodeNames = new List<(string displayName, bool offline, bool idle, int numExec, List<string> labels)>();
+        foreach (var comp in computers.EnumerateArray())
+        {
+            var dn = comp.TryGetProperty("displayName", out var d) ? d.GetString() ?? "" : "";
+            var offline = comp.TryGetProperty("offline", out var of) ? of.GetBoolean() : true;
+            var idle = comp.TryGetProperty("idle", out var id) ? id.GetBoolean() : true;
+            var numExec = comp.TryGetProperty("numExecutors", out var ne) ? ne.GetInt32() : 0;
+
+            var labels = new List<string>();
+            if (comp.TryGetProperty("assignedLabels", out var al))
+                foreach (var lbl in al.EnumerateArray())
+                    if (lbl.TryGetProperty("name", out var ln) && ln.GetString() is { } lname && lname != dn)
+                        labels.Add(lname);
+
+            nodeNames.Add((dn, offline, idle, numExec, labels));
+        }
+
+        // 5. Her node için /computer/{name}/api/json çek (gerçek monitor verileri burada)
+        var fetchTasks = nodeNames.Select(n => FetchNodeDetailAsync(client, n.displayName, n.offline, n.idle, n.numExec, n.labels));
+        var allNodes = (await Task.WhenAll(fetchTasks)).ToList();
+
+        NodeInfo? masterNode = null;
+        var agentNodes = new List<NodeInfo>();
+
+        foreach (var node in allNodes)
+        {
+            if (node.Name == "Built-In Node" || node.Name == "master")
+            {
+                node.Name = "Jenkins Master";
+                masterNode = node;
+            }
+            else
+            {
+                agentNodes.Add(node);
+            }
+        }
+
+        masterNode ??= new NodeInfo { Name = "Jenkins Master", Online = false };
+
+        return new InfraStats
+        {
+            MasterNode = masterNode,
+            Nodes = agentNodes,
+            JenkinsVersion = jenkinsVersion,
+            BusyExecutors = busyExec,
+            TotalExecutors = totalExec,
+            QueueLength = queueLen,
+        };
+    }
+
+    private async Task<NodeInfo> FetchNodeDetailAsync(
+        HttpClient client, string displayName, bool offline, bool idle, int numExec, List<string> labels)
+    {
+        var node = new NodeInfo
+        {
+            Name = displayName,
+            Online = !offline,
+            Idle = idle,
+            Executors = numExec,
+            FreeExecutors = numExec,
+            Labels = labels,
+        };
+
+        if (offline) return node;
+
+        try
+        {
+            // node adı "Built-In Node" için URL "(built-in)" olur
+            var encodedName = displayName == "Built-In Node" ? "(built-in)" : Uri.EscapeDataString(displayName);
+            var url = _url + $"/computer/{encodedName}/api/json" +
+                      "?tree=numExecutors,idle,monitorData[*[*]]";
+
+            var resp = await client.GetAsync(url);
+            if (!resp.IsSuccessStatusCode) return node;
+
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+            var root = doc.RootElement;
+
+            if (!root.TryGetProperty("monitorData", out var md)) return node;
+
+            // CPU — SystemLoadAverageMonitor
+            if (md.TryGetProperty("hudson.node_monitors.SystemLoadAverageMonitor", out var cpuMon)
+                && cpuMon.ValueKind != JsonValueKind.Null
+                && cpuMon.TryGetProperty("average", out var avg))
+            {
+                var load = avg.GetDouble();
+                // Load average'ı CPU % olarak göster (çekirdek sayısına normalize et, max 100)
+                node.CpuPercent = Math.Min(100, (int)Math.Round(load * 25)); // yaklaşık
+            }
+
+            // RAM — SwapSpaceMonitor
+            if (md.TryGetProperty("hudson.node_monitors.SwapSpaceMonitor", out var ramMon)
+                && ramMon.ValueKind != JsonValueKind.Null)
+            {
+                if (ramMon.TryGetProperty("totalPhysicalMemory", out var tot))
+                    node.RamTotalMb = (int)(tot.GetInt64() / (1024 * 1024));
+                if (ramMon.TryGetProperty("availablePhysicalMemory", out var avail))
+                    node.RamUsedMb = node.RamTotalMb - (int)(avail.GetInt64() / (1024 * 1024));
+            }
+
+            // Disk — DiskSpaceMonitor
+            if (md.TryGetProperty("hudson.node_monitors.DiskSpaceMonitor", out var diskMon)
+                && diskMon.ValueKind != JsonValueKind.Null
+                && diskMon.TryGetProperty("size", out var freeBytes))
+            {
+                var freeGb = freeBytes.GetInt64() / (1024.0 * 1024 * 1024);
+                // Jenkins sadece boş alanı döndürür, toplam bilinmiyor
+                // Kullanılan = toplam - boş, toplam için işletim sistemi bilgisiyle tahmin yap
+                node.DiskFreeGb = (int)freeGb;
+                node.DiskTotalGb = 500; // varsayılan, disk izleme eklentisi olmadan bilinmiyor
+                node.DiskUsedGb = Math.Max(0, node.DiskTotalGb - (int)freeGb);
+            }
+
+            // OS — ArchitectureMonitor (string olarak geliyor)
+            if (md.TryGetProperty("hudson.node_monitors.ArchitectureMonitor", out var osMon)
+                && osMon.ValueKind == JsonValueKind.String)
+                node.Os = osMon.GetString() ?? "";
+
+            // Response time
+            if (md.TryGetProperty("hudson.node_monitors.ResponseTimeMonitor", out var rtMon)
+                && rtMon.ValueKind != JsonValueKind.Null
+                && rtMon.TryGetProperty("average", out var rt))
+                node.ResponseTimeMs = (int)rt.GetDouble();
+
+            // Free executors
+            if (root.TryGetProperty("numExecutors", out var ne))
+                node.FreeExecutors = ne.GetInt32() - (root.TryGetProperty("idle", out var idleProp) && !idleProp.GetBoolean() ? 1 : 0);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Node detail fetch error ({displayName}): {ex.Message}");
+        }
+
+        return node;
+    }
+
+    private static NodeInfo ParseNodeInfo(JsonElement comp)
+    {
+        var name = comp.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
+        var offline = comp.TryGetProperty("offline", out var of) ? of.GetBoolean() : true;
+        var idle = comp.TryGetProperty("idle", out var id) ? id.GetBoolean() : true;
+        var numExec = comp.TryGetProperty("numExecutors", out var ne) ? ne.GetInt32() : 0;
+
+        var labels = new List<string>();
+        if (comp.TryGetProperty("assignedLabels", out var al))
+            foreach (var lbl in al.EnumerateArray())
+                if (lbl.TryGetProperty("name", out var ln) && ln.GetString() is { } lname && lname != name)
+                    labels.Add(lname);
+
+        return new NodeInfo
+        {
+            Name = name,
+            Online = !offline,
+            Idle = idle,
+            Executors = numExec,
+            FreeExecutors = numExec,
+            Labels = labels,
+        };
+    }
 }
