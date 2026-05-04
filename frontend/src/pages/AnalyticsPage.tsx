@@ -413,7 +413,10 @@ export default function AnalyticsPage() {
                         {sonar.length === 0 ? (
                             <div className="empty-state" style={{ padding: '20px 0' }}>Yükleniyor...</div>
                         ) : sonar.map((s: any) => {
-                            const ratingGrade = (r: string) => r === '1' ? 'A' : r === '2' ? 'B' : r === '3' ? 'C' : r === '4' ? 'D' : r === '5' ? 'E' : 'D'
+                            const ratingGrade = (r: string) => {
+                                const key = (r ?? '').split('.')[0]
+                                return key === '1' ? 'A' : key === '2' ? 'B' : key === '3' ? 'C' : key === '4' ? 'D' : key === '5' ? 'E' : '?'
+                            }
                             const bugGrade = s.bugs === 0 ? 'A' : s.bugs <= 5 ? 'B' : s.bugs <= 10 ? 'C' : s.bugs <= 20 ? 'D' : 'E'
                             const secGrade = ratingGrade(s.securityRating)
                             const qualGrade = s.qualityGate === 'OK' ? 'A' : 'D'
