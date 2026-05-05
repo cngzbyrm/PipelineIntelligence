@@ -8,6 +8,7 @@ import { dashboardApi } from '../services/api'
 import { toast } from '../components/ui'
 import type { AiAnalysis } from '../types'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 
 export default function SettingsPage() {
     const { refreshInterval, sound, autoAI, flakyDetect,
@@ -80,11 +81,12 @@ export default function SettingsPage() {
 
     return (
         <div className="page-wrap">
-            <div className="page-title">
-                <SlidersHorizontal size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--teal)' }} />
-                Ayarlar
-            </div>
-            <div className="page-sub">Tüm ayarlar veritabanına kaydedilir — uygulama yeniden başlatılsa bile korunur.</div>
+            <PageHeader
+                icon={<SlidersHorizontal size={22} weight="duotone" />}
+                kicker="Yapılandırma"
+                title="Ayarlar"
+                subtitle="Tüm ayarlar veritabanına kaydedilir — uygulama yeniden başlatılsa bile korunur."
+            />
 
             <div className="sgrid">
 

@@ -1,8 +1,10 @@
 import { useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, useInView } from 'framer-motion'
 import {
     Star, XCircle, CircleNotch, MagnifyingGlass,
-    Trophy, Medal, SealCheck, Wrench, ChartBar
+    Trophy, Medal, SealCheck, ChartBar, ArrowsLeftRight,
+    ClockCounterClockwise, Pulse, Rocket, ListBullets,
 } from '@phosphor-icons/react'
 import { useStore } from '../store'
 import { PipelineLoaderInline } from '../components/ui/PipelineLoader'
@@ -54,9 +56,9 @@ function StatCard({ label, value, suffix = '', decimals = 0, sub, colorClass = '
                     <CountUp to={value} suffix={suffix} decimals={decimals} duration={1.2} />
                 </div>
                 <div className="ssub">{sub}</div>
-                {delta && (
-                    <div className={`sdelta ${deltaType ?? ''}`}>{delta}</div>
-                )}
+                <div className="sdelta-slot" aria-hidden={!delta}>
+                    {delta ? <div className={`sdelta ${deltaType ?? ''}`}>{delta}</div> : <span className="sdelta sdelta--placeholder">&nbsp;</span>}
+                </div>
             </GlowCard>
         </motion.div>
     )
@@ -65,7 +67,7 @@ function StatCard({ label, value, suffix = '', decimals = 0, sub, colorClass = '
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function BuildsPage() {
     const {
-        stats, builds, filter, sort, search,
+        stats, builds, filter, sort, search, lastRefresh,
         setFilter, setSort, setSearch,
         setCurrentAnalysis, setAiLoading,
     } = useStore()
@@ -98,12 +100,75 @@ export default function BuildsPage() {
         { label: 'Ort. Süre', value: s?.avgDurationMinutes ?? 0, sub: 'dakika', suffix: 'dk', decimals: 1, glowColor: '#8b5cf6' },
     ]
 
+    const running = s?.running ?? 0
+    const jobCount = builds.length
+
     return (
-        <div className="page-wrap">
-            {/* Animated title */}
-            <div style={{ marginBottom: 16 }}>
-                <BlurText text="Pipeline Intelligence" as="h2" className="section-title" duration={0.4} />
-            </div>
+        <div className="page-wrap dash-home">
+            <header className="dash-hero">
+                <div className="dash-hero-glow" aria-hidden />
+                <div className="dash-hero-top">
+                    <div className="dash-hero-titles">
+                        <div className="dash-hero-kicker">
+                            <Rocket size={15} weight="duotone" className="dash-hero-kicker-ic" />
+                            CI/CD Özet
+                        </div>
+                        <BlurText text="Pipeline Intelligence" as="h1" className="dash-hero-title" duration={0.4} />
+                        <p className="dash-hero-sub">
+                            Jenkins job’ları, canlı durum ve haftalık sağlık metrikleri tek ekranda.
+                        </p>
+                    </div>
+                    <div className="dash-hero-aside">
+                        <div className="dash-hero-chips">
+                            <span className="dash-chip dash-chip-live" title="SignalR canlı güncelleme">
+                                <span className="bub" /> Canlı
+                            </span>
+                            <span className="dash-chip mono-sm">
+                                Son yenileme · {lastRefresh || '—'}
+                            </span>
+                        </div>
+                        <nav className="dash-quick-nav" aria-label="Hızlı sayfalar">
+                            <Link to="/analytics" className="dash-qa">
+                                <ChartBar size={17} weight="duotone" />
+                                Analitik
+                            </Link>
+                            <Link to="/compare" className="dash-qa">
+                                <ArrowsLeftRight size={17} weight="duotone" />
+                                Karşılaştır
+                            </Link>
+                            <Link to="/timeline" className="dash-qa">
+                                <ClockCounterClockwise size={17} weight="duotone" />
+                                Zaman çizelgesi
+                            </Link>
+                        </nav>
+                    </div>
+                </div>
+                <div className="dash-hero-summary">
+                    <div className="dash-sum-item">
+                        <Pulse size={18} weight="duotone" className="dash-sum-ic" />
+                        <div>
+                            <div className="dash-sum-label">İzlenen job</div>
+                            <div className="dash-sum-val">{jobCount}</div>
+                        </div>
+                    </div>
+                    <div className="dash-sum-div" />
+                    <div className="dash-sum-item">
+                        <CircleNotch size={18} weight="bold" className="dash-sum-ic dash-sum-spin" />
+                        <div>
+                            <div className="dash-sum-label">Şu an çalışan</div>
+                            <div className="dash-sum-val">{running}</div>
+                        </div>
+                    </div>
+                    <div className="dash-sum-div" />
+                    <div className="dash-sum-item">
+                        <ChartBar size={18} weight="duotone" className="dash-sum-ic" />
+                        <div>
+                            <div className="dash-sum-label">Başarı oranı</div>
+                            <div className="dash-sum-val">{rate.toFixed(1)}<span className="dash-sum-suf">%</span></div>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
             {/* Stat cards */}
             <div className="scards">
@@ -127,7 +192,8 @@ export default function BuildsPage() {
             </div>
 
             {/* Filter bar */}
-            <div className="fbar">
+            <div className="dash-toolbar">
+            <div className="fbar fbar-dash">
                 {(['ALL', 'FAV', 'FAILURE', 'RUNNING'] as FilterType[]).map(f => (
                     <button key={f} className={`fbtn ${filter === f ? 'on' : ''}`} onClick={() => setFilter(f)}>
                         {f === 'ALL' ? 'Tümü'
@@ -152,15 +218,24 @@ export default function BuildsPage() {
                     />
                 </div>
             </div>
+            </div>
 
             {/* Main grid */}
             <div className="mg">
-                <div>
-                    <div className="section-row">
-                        <div className="section-title">Build Listesi</div>
-                        <div className="section-meta">{builds.length} job</div>
+                <div className="dash-primary">
+                    <div className="section-row dash-section-head">
+                        <div className="dash-section-title-wrap">
+                            <div className="dash-section-icon" aria-hidden>
+                                <ListBullets size={18} weight="duotone" />
+                            </div>
+                            <div>
+                                <div className="section-title dash-section-title">Build listesi</div>
+                                <div className="dash-section-hint">Filtreleyin, sıralayın veya satırdan log / AI analizi açın</div>
+                            </div>
+                        </div>
+                        <div className="section-meta dash-job-pill">{builds.length} job</div>
                     </div>
-                    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="card dash-builds-card" style={{ padding: 0, overflow: 'hidden' }}>
                         {builds.length === 0 ? (
                             <PipelineLoaderInline message="connecting to jenkins..." />
                         ) : (

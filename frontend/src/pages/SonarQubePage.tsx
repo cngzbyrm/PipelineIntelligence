@@ -7,6 +7,7 @@ import {
 import axios from 'axios'
 import SonarIssueModal from '../components/sonar/SonarIssueModal'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 
 const API_BASE = import.meta.env.PROD ? 'http://194.99.74.2:8091' : ''
 
@@ -248,11 +249,13 @@ export default function SonarQubePage() {
 
     return (
         <div className="page-wrap">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                <ShieldWarning size={22} weight="duotone" color="var(--teal)" />
-                <div className="page-title" style={{ margin: 0 }}>SonarQube</div>
-                {selected && (
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <PageHeader
+                icon={<ShieldWarning size={22} weight="duotone" />}
+                kicker="Kalite kapısı"
+                title="SonarQube"
+                subtitle="Kod kalitesi issues ve güvenlik bulguları"
+                actions={selected ? (
+                    <>
                         <a
                             href={`${API_BASE}/api/sonar/report/excel?project=${encodeURIComponent(selected)}`}
                             download
@@ -277,10 +280,9 @@ export default function SonarQubePage() {
                         >
                             ⬇ PDF
                         </a>
-                    </div>
-                )}
-            </div>
-            <div className="page-sub">Kod kalitesi issues ve güvenlik bulguları</div>
+                    </>
+                ) : undefined}
+            />
 
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '260px 1fr', gap: 16, alignItems: 'start' }}>
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ArrowsLeftRight } from '@phosphor-icons/react'
 import { useStore } from '../store'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 import type { BuildResult } from '../types'
 
 function timeAgo(ts: number) {
@@ -51,11 +52,12 @@ export default function ComparePage() {
 
     return (
         <div className="page-wrap">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <ArrowsLeftRight size={22} weight="duotone" color="var(--teal)" />
-                <div className="page-title" style={{ margin: 0 }}>Build Karşılaştırma</div>
-            </div>
-            <div className="page-sub">İki build'i yan yana kıyasla</div>
+            <PageHeader
+                icon={<ArrowsLeftRight size={22} weight="duotone" />}
+                kicker="Diff"
+                title="Build karşılaştırma"
+                subtitle="İki build'i yan yana kıyasla"
+            />
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
                 <Select

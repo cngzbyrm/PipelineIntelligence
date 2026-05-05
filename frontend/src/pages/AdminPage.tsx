@@ -6,6 +6,7 @@ import {
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
+import PageHeader from '../components/layout/PageHeader'
 
 const API_BASE = import.meta.env.PROD ? 'http://194.99.74.2:8091' : ''
 
@@ -79,11 +80,12 @@ export default function AdminPage() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-        <Shield size={22} weight="duotone" color="var(--teal)" />
-        <div className="page-title" style={{ margin:0 }}>Admin Paneli</div>
-      </div>
-      <div className="page-sub">Kullanıcı yönetimi ve rol atamaları</div>
+      <PageHeader
+        icon={<Shield size={22} weight="duotone" />}
+        kicker="Yönetim"
+        title="Admin paneli"
+        subtitle="Kullanıcı yönetimi ve rol atamaları"
+      />
 
       {/* Stats */}
       <div style={{ display:'flex', gap:10, marginBottom:20 }}>

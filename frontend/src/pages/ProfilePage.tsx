@@ -3,6 +3,7 @@ import { User, Lock, Shield, SignOut, Camera, Bell } from '@phosphor-icons/react
 import { useAuthStore } from '../store/authStore'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import PageHeader from '../components/layout/PageHeader'
 
 const API_BASE = import.meta.env.PROD ? 'http://194.99.74.2:8091' : ''
 
@@ -54,11 +55,12 @@ export default function ProfilePage() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-        <User size={22} weight="duotone" color="var(--teal)" />
-        <div className="page-title" style={{ margin:0 }}>Profil</div>
-      </div>
-      <div className="page-sub">Hesap bilgileri ve güvenlik ayarları</div>
+      <PageHeader
+        icon={<User size={22} weight="duotone" />}
+        kicker="Hesap"
+        title="Profil"
+        subtitle="Hesap bilgileri ve güvenlik ayarları"
+      />
 
       <div style={{ display:'grid', gridTemplateColumns:'280px 1fr', gap:16, alignItems:'start' }}>
 

@@ -3,6 +3,7 @@ import { Bell, Plus, Trash, PaperPlaneTilt, PencilSimple, CheckCircle, XCircle }
 import { dashboardApi } from '../services/api'
 import { toast } from '../components/ui'
 import type { WebhookConfig } from '../types'
+import PageHeader from '../components/layout/PageHeader'
 
 const EVENT_OPTIONS = [
   { key: 'failure',  label: 'Build Başarısız' },
@@ -78,16 +79,17 @@ export default function WebhookPage() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <div className="page-title">
-          <Bell size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--teal)' }} />
-          Webhook Yönetimi
-        </div>
-        <button className="btn btn-p" onClick={openNew}>
-          <Plus size={14} weight="bold" /> Yeni Webhook
-        </button>
-      </div>
-      <div className="page-sub">Teams, Slack veya özel URL'lere build bildirimleri gönder</div>
+      <PageHeader
+        icon={<Bell size={22} weight="duotone" />}
+        kicker="Entegrasyon"
+        title="Webhook yönetimi"
+        subtitle="Teams, Slack veya özel URL'lere build bildirimleri gönder"
+        actions={
+          <button type="button" className="btn btn-p" onClick={openNew}>
+            <Plus size={14} weight="bold" /> Yeni Webhook
+          </button>
+        }
+      />
 
       {/* Form */}
       {showForm && (

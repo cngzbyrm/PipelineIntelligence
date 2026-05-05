@@ -8,6 +8,7 @@ import {
 import { dashboardApi } from '../services/api'
 import type { TrendPoint, HeatmapEntry, SonarEntry, Prediction } from '../types'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 
 // Chart.js custom dataset field type augmentation
 declare module 'chart.js' {
@@ -238,11 +239,12 @@ export default function AnalyticsPage() {
 
     return (
         <div className="page-wrap">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <PresentationChart size={22} weight="duotone" color="var(--teal)" />
-                <div className="page-title" style={{ margin: 0 }}>Build Analitikleri</div>
-            </div>
-            <div className="page-sub">Son 30 günlük trend, kalite metrikleri ve tahminler</div>
+            <PageHeader
+                icon={<PresentationChart size={22} weight="duotone" />}
+                kicker="Metrikler"
+                title="Build analitikleri"
+                subtitle="Son 30 günlük trend, kalite metrikleri ve tahminler"
+            />
 
             <div className="agrid">
 
@@ -328,7 +330,7 @@ export default function AnalyticsPage() {
                                                 if (tip) {
                                                     tip.style.display = 'block'
                                                     tip.style.left = `${(e.currentTarget as HTMLDivElement).offsetLeft}px`
-                                                    tip.innerHTML = `<div style="font-family:Poppins,sans-serif;font-size:11px;font-weight:600;color:${col}">${t.label}</div><div style="font-family:Poppins,sans-serif;font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">✅ ${t.pass} başarılı</div><div style="font-family:Poppins,sans-serif;font-size:10px;color:rgba(255,255,255,.6)">❌ ${t.fail} başarısız</div>`
+                                                    tip.innerHTML = `<div style="font-family:Poppins,sans-serif;font-size:11px;font-weight:600;color:${col}">${t.label}</div><div style="font-family:Poppins,sans-serif;font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">✅ ${t.pass} başarılı</div><div style="font-family:Poppins,sans-serif;font-size:10px;color:rgba(43, 31, 31, 0.6)">❌ ${t.fail} başarısız</div>`
                                                 }
                                             }}
                                             onMouseLeave={() => {

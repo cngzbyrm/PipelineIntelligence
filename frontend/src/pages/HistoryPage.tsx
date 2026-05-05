@@ -6,6 +6,7 @@ import {
 } from '@phosphor-icons/react'
 import { dashboardApi } from '../services/api'
 import { PipelineLoaderInline } from '../components/ui/PipelineLoader'
+import PageHeader from '../components/layout/PageHeader'
 import { useStore } from '../store'
 import type { TestHistoryPoint } from '../types'
 
@@ -140,12 +141,12 @@ export default function HistoryPage() {
 
     return (
         <div className="page-wrap">
-            {/* Page title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <TestTube size={22} weight="duotone" color="var(--teal)" />
-                <div className="page-title" style={{ margin: 0 }}>Test Geçmişi</div>
-            </div>
-            <div className="page-sub">Son 30 build boyunca test geçme/kalma trendi ve hata analizi</div>
+            <PageHeader
+                icon={<TestTube size={22} weight="duotone" />}
+                kicker="Kalite"
+                title="Test geçmişi"
+                subtitle="Son 30 build boyunca test geçme/kalma trendi ve hata analizi"
+            />
 
             {/* Job selector */}
             <div className="card" style={{ marginBottom: 16 }}>

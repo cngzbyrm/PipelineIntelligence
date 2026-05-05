@@ -8,6 +8,7 @@ import { PipelineLoaderInline } from '../components/ui/PipelineLoader'
 import Pagination from '../components/ui/Pagination'
 import { usePagination } from '../hooks/usePagination'
 import type { AuditLog } from '../types'
+import PageHeader from '../components/layout/PageHeader'
 
 const ACTION_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
   TRIGGER:       { icon: <Lightning size={12} weight="fill" />,         color: 'var(--g)',    label: 'Tetiklendi'   },
@@ -60,11 +61,12 @@ export default function AuditPage() {
 
   return (
     <div className="page-wrap">
-      <div className="page-title">
-        <ClipboardText size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--teal)' }} />
-        Aktivite Logu
-      </div>
-      <div className="page-sub">Kim ne zaman ne yaptı — tüm dashboard aksiyonları</div>
+      <PageHeader
+        icon={<ClipboardText size={22} weight="duotone" />}
+        kicker="Denetim"
+        title="Aktivite logu"
+        subtitle="Kim ne zaman ne yaptı — tüm dashboard aksiyonları"
+      />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>

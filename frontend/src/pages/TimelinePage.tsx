@@ -7,6 +7,7 @@ import { dashboardApi } from '../services/api'
 import Pagination from '../components/ui/Pagination'
 import { usePagination } from '../hooks/usePagination'
 import { PipelineLoaderInline } from '../components/ui/PipelineLoader'
+import PageHeader from '../components/layout/PageHeader'
 import type { TimelineEvent } from '../types'
 
 const COLOR_MAP: Record<string, string> = {
@@ -35,11 +36,12 @@ export default function TimelinePage() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
-        <GitCommit size={22} weight="duotone" color="var(--teal)" />
-        <div className="page-title" style={{ margin:0 }}>Deployment Timeline</div>
-      </div>
-      <div className="page-sub">Kim, ne zaman, nereye deploy etti</div>
+      <PageHeader
+        icon={<GitCommit size={22} weight="duotone" />}
+        kicker="Deploy"
+        title="Deployment timeline"
+        subtitle="Kim, ne zaman, nereye deploy etti"
+      />
 
       <div className="card" style={{ position: "relative" }}>
         {loading ? (

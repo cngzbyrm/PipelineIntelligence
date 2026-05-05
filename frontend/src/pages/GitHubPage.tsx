@@ -8,6 +8,7 @@ import axios from 'axios'
 import CommitDiffModal from '../components/github/CommitDiffModal'
 import PRDetailModal from '../components/github/PRDetailModal'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 
 const API_BASE = import.meta.env.PROD ? 'http://194.99.74.2:8091' : ''
 
@@ -233,11 +234,12 @@ export default function GitHubPage() {
                 </div>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                <GithubLogo size={22} weight="fill" color="var(--teal)" />
-                <div className="page-title" style={{ margin: 0 }}>GitHub</div>
-            </div>
-            <div className="page-sub">Repository aktivitesi, pull request'ler ve branch yönetimi</div>
+            <PageHeader
+                icon={<GithubLogo size={22} weight="fill" />}
+                kicker="Kod"
+                title="GitHub"
+                subtitle="Repository aktivitesi, pull request'ler ve branch yönetimi"
+            />
 
             <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 16, alignItems: 'start' }}>
 

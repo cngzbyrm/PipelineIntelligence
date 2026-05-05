@@ -4,7 +4,8 @@ import {
     GitBranch, PresentationChart, Vault, ArrowsLeftRight,
     TestTube, GitCommit, ClipboardText, Sliders, Desktop,
     ArrowsClockwise, Moon, Sun, Bell, BellSlash, Lightning,
-    List, X, User, SignOut, CaretDown, Shield, Palette, ShieldWarning, GithubLogo
+    List, X, User, SignOut, CaretDown, Shield, Palette, ShieldWarning, GithubLogo,
+    Plugs,
 } from '@phosphor-icons/react'
 import { useStore } from '../../store'
 import { useBuilds } from '../../hooks/useBuilds'
@@ -35,7 +36,6 @@ export default function Header() {
     const userMenuRef = useRef<HTMLDivElement>(null)
     const themeMenuRef = useRef<HTMLDivElement>(null)
 
-    // Dışarı tıklayınca kapat
     useEffect(() => {
         function handleClick(e: MouseEvent) {
             if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node))
@@ -53,317 +53,245 @@ export default function Header() {
     }
 
     const navItems = [
-        { to: '/', icon: <GitBranch size={16} weight="duotone" />, label: 'Buildler' },
-        { to: '/analytics', icon: <PresentationChart size={16} weight="duotone" />, label: 'Analitik' },
-        { to: '/nexus', icon: <Vault size={16} weight="duotone" />, label: 'Nexus' },
-        { to: '/compare', icon: <ArrowsLeftRight size={16} weight="duotone" />, label: 'Karşılaştır' },
-        { to: '/history', icon: <TestTube size={16} weight="duotone" />, label: 'Test Geçmişi' },
-        { to: '/timeline', icon: <GitCommit size={16} weight="duotone" />, label: 'Timeline' },
-        { to: '/infra', icon: <Desktop size={16} weight="duotone" />, label: 'Altyapı' },
-        { to: '/audit', icon: <ClipboardText size={16} weight="duotone" />, label: 'Aktivite' },
-        { to: '/sonar', icon: <ShieldWarning size={16} weight="duotone" />, label: 'SonarQube' },
-        { to: '/github', icon: <GithubLogo size={16} weight="fill" />, label: 'GitHub' },
-        { to: '/settings', icon: <Sliders size={16} weight="duotone" />, label: 'Ayarlar' },
+        { to: '/', icon: <GitBranch size={20} weight="duotone" />, label: 'Buildler' },
+        { to: '/analytics', icon: <PresentationChart size={20} weight="duotone" />, label: 'Analitik' },
+        { to: '/nexus', icon: <Vault size={20} weight="duotone" />, label: 'Nexus' },
+        { to: '/compare', icon: <ArrowsLeftRight size={20} weight="duotone" />, label: 'Karşılaştır' },
+        { to: '/history', icon: <TestTube size={20} weight="duotone" />, label: 'Test Geçmişi' },
+        { to: '/timeline', icon: <GitCommit size={20} weight="duotone" />, label: 'Timeline' },
+        { to: '/infra', icon: <Desktop size={20} weight="duotone" />, label: 'Altyapı' },
+        { to: '/audit', icon: <ClipboardText size={20} weight="duotone" />, label: 'Aktivite' },
+        { to: '/webhooks', icon: <Plugs size={20} weight="duotone" />, label: 'Webhook' },
+        { to: '/sonar', icon: <ShieldWarning size={20} weight="duotone" />, label: 'SonarQube' },
+        { to: '/github', icon: <GithubLogo size={20} weight="fill" />, label: 'GitHub' },
+        { to: '/settings', icon: <Sliders size={20} weight="duotone" />, label: 'Ayarlar' },
     ]
+
+    const themePanel = themeOpen && (
+        <div className="sidebar-flyout sidebar-flyout--theme">
+            <div style={{ padding: '12px 18px 8px', borderBottom: '1px solid rgba(255,255,255,.07)', fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>
+                Tema seçici
+            </div>
+            <ThemePicker />
+        </div>
+    )
+
+    const userPanel = user && userMenuOpen && (
+        <div className="sidebar-flyout sidebar-flyout--user">
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,.08)', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#e2f0ef' }}>{user.fullName || user.username}</div>
+                <div style={{ fontSize: 11, color: '#5a8080', marginTop: 2 }}>{user.email}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#2dd4bf', marginTop: 4, padding: '2px 8px', borderRadius: 20, background: 'rgba(45,212,191,.1)', display: 'inline-block' }}>
+                    {user.role}
+                </div>
+            </div>
+            <button type="button" onClick={() => { navigate('/profile'); setUserMenuOpen(false) }} className="sidebar-dd-btn">
+                <User size={14} weight="duotone" /> Profil
+            </button>
+            {user.role === 'Admin' && (
+                <button type="button" onClick={() => { navigate('/admin'); setUserMenuOpen(false) }} className="sidebar-dd-btn sidebar-dd-btn--admin">
+                    <Shield size={14} weight="duotone" /> Admin paneli
+                </button>
+            )}
+            <button type="button" onClick={handleLogout} className="sidebar-dd-btn sidebar-dd-btn--danger">
+                <SignOut size={14} weight="duotone" /> Çıkış
+            </button>
+        </div>
+    )
+
+    const toolbarIcons = (
+        <div className="sidebar-tools">
+            <Magnet strength={0.35}>
+                <button type="button" className="ibtn ibtn--sidebar" onClick={refresh} title="Yenile">
+                    <ArrowsClockwise size={18} weight="bold" color="var(--teal)" />
+                </button>
+            </Magnet>
+            <div ref={themeMenuRef} className="sidebar-tools__rel">
+                <button
+                    type="button"
+                    className="ibtn ibtn--sidebar"
+                    onClick={() => setThemeOpen(!themeOpen)}
+                    title="Tema paleti"
+                    style={themeOpen ? { borderColor: 'var(--acc-bdr)', background: 'var(--teal-dim)' } : {}}
+                >
+                    <Palette size={18} weight="duotone" color="var(--teal)" />
+                </button>
+                {themePanel}
+            </div>
+            <Magnet strength={0.35}>
+                <button type="button" className="ibtn ibtn--sidebar" onClick={toggleTheme} title="Açık / koyu">
+                    {theme === 'dark'
+                        ? <Sun size={18} weight="fill" color="#fbbf24" />
+                        : <Moon size={18} weight="fill" color="#a78bfa" />}
+                </button>
+            </Magnet>
+            <Magnet strength={0.35}>
+                <button type="button" className="ibtn ibtn--sidebar" onClick={toggleSound} title="Ses">
+                    {sound
+                        ? <Bell size={18} weight="fill" color="var(--teal)" />
+                        : <BellSlash size={18} weight="fill" color="rgba(255,255,255,.3)" />}
+                </button>
+            </Magnet>
+        </div>
+    )
 
     return (
         <>
-            <header className="header">
-                {/* Logo */}
-                <NavLink to="/" className="logo" style={{ gap: 10, alignItems: 'center' }}>
-                    <img
-                        src="/nishcommerce-icon.png"
-                        alt="Nish Pipeline"
-                        style={{
-                            height: 32,
-                            width: 'auto',
-                            filter: 'var(--logo-filter, brightness(1))',
-                            transition: 'filter .3s',
-                            objectFit: 'contain',
-                        }}
-                    />
-                    {!isMobile && (
-                        <span style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: 'var(--tx)',
-                            letterSpacing: '-.2px',
-                            whiteSpace: 'nowrap',
-                            fontFamily: 'Inter, sans-serif',
-                        }}>
-                            Nish <span style={{ color: 'var(--teal)', fontWeight: 800 }}>Pipeline</span>
-                        </span>
-                    )}
-                    {isMobile && (
-                        <span style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: 'var(--tx)',
-                            whiteSpace: 'nowrap',
-                            fontFamily: 'Inter, sans-serif',
-                            lineHeight: 1.2,
-                        }}>
-                            Nish<br /><span style={{ color: 'var(--teal)' }}>Pipeline</span>
-                        </span>
-                    )}
-                </NavLink>
+            {!isMobile && (
+                <aside className="sidebar" aria-label="Ana navigasyon">
+                    <NavLink to="/" className="sidebar-brand" end>
+                        <img
+                            src="/nishcommerce-icon.png"
+                            alt=""
+                            className="sidebar-brand__img"
+                        />
+                        <div className="sidebar-brand__text">
+                            <span className="sidebar-brand__line1">Nish</span>
+                            <span className="sidebar-brand__line2">Pipeline</span>
+                        </div>
+                    </NavLink>
 
-                {/* Desktop nav */}
-                {!isMobile && (
-                    <nav className="nav">
+                    <nav className="sidebar-nav">
                         {navItems.map(item => (
                             <NavLink
                                 key={item.to}
                                 to={item.to}
                                 end={item.to === '/'}
-                                className={({ isActive }) => `ntab ${isActive ? 'on' : ''}`}
+                                className={({ isActive }) => `snav${isActive ? ' snav--on' : ''}`}
                             >
-                                {item.icon} {item.label}
+                                <span className="snav__ic">{item.icon}</span>
+                                <span className="snav__label">{item.label}</span>
                             </NavLink>
                         ))}
                     </nav>
-                )}
 
-                <div className="hright">
-                    {/* Mobil: hamburger butonu — logo yanında */}
-                    {isMobile && (
-                        <button
-                            onClick={() => setMenuOpen(true)}
-                            style={{
-                                width: 38, height: 38, borderRadius: 9,
-                                border: '1px solid rgba(45,212,191,.3)',
-                                background: 'rgba(45,212,191,.1)',
-                                cursor: 'pointer', display: 'grid', placeItems: 'center',
-                                color: '#2dd4bf', flexShrink: 0,
-                            }}
-                        >
-                            <List size={20} weight="bold" />
-                        </button>
-                    )}
-
-                    <div className="pill pill-live">
-                        <div className="bub" />
-                        <ShinyText text="CANLI" speed={2.5} />
-                    </div>
-
-                    {!isMobile && (
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,.3)', fontFamily: 'JetBrains Mono,monospace' }}>
-                            {lastRefresh}
-                        </span>
-                    )}
-
-                    <Magnet strength={0.4}>
-                        <button className="ibtn" onClick={refresh} title="Yenile">
-                            <ArrowsClockwise size={16} weight="bold" color="var(--teal)" />
-                        </button>
-                    </Magnet>
-
-                    {/* Tema seçici */}
-                    <div ref={themeMenuRef} style={{ position: 'relative' }}>
-                        <button
-                            className="ibtn"
-                            onClick={() => setThemeOpen(!themeOpen)}
-                            title="Tema"
-                            style={themeOpen ? { borderColor: 'var(--acc-bdr)', background: 'var(--teal-dim)' } : {}}
-                        >
-                            <Palette size={16} weight="duotone" color="var(--teal)" />
-                        </button>
-
-                        {themeOpen && (
-                            <div style={{
-                                position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-                                background: 'rgba(13,18,28,.97)', border: '1px solid rgba(255,255,255,.1)',
-                                borderRadius: 14, minWidth: 260, zIndex: 1000,
-                                boxShadow: '0 16px 50px rgba(0,0,0,.6)',
-                                overflow: 'hidden',
-                            }}>
-                                <div style={{ padding: '12px 20px 8px', borderBottom: '1px solid rgba(255,255,255,.07)', fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>
-                                    🎨 Tema Seçici
-                                </div>
-                                <ThemePicker/>
+                    <div className="sidebar-footer">
+                        <div className="sidebar-live">
+                            <div className="pill pill-live sidebar-live__pill">
+                                <span className="bub" />
+                                <ShinyText text="CANLI" speed={2.5} />
+                            </div>
+                            <span className="sidebar-live__time mono-sm">{lastRefresh}</span>
+                        </div>
+                        {toolbarIcons}
+                        {user && (
+                            <div ref={userMenuRef} className="sidebar-user">
+                                <button
+                                    type="button"
+                                    className="sidebar-user__btn"
+                                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                >
+                                    {user.avatarUrl
+                                        ? <img src={user.avatarUrl} alt="" className="sidebar-user__avatar" />
+                                        : <div className="sidebar-user__avatar sidebar-user__avatar--ph">
+                                            {(user.fullName || user.username)[0]?.toUpperCase()}
+                                        </div>}
+                                    <span className="sidebar-user__name">{user.fullName || user.username}</span>
+                                    <CaretDown size={12} weight="bold" color="var(--mt)" />
+                                </button>
+                                {userPanel}
                             </div>
                         )}
                     </div>
+                </aside>
+            )}
 
-                    {!isMobile && (
-                        <>
-                            <Magnet strength={0.4}>
-                                <button className="ibtn" onClick={toggleTheme} title="Tema">
-                                    {theme === 'dark'
-                                        ? <Sun size={16} weight="fill" color="#fbbf24" />
-                                        : <Moon size={16} weight="fill" color="#a78bfa" />}
-                                </button>
-                            </Magnet>
-                            <Magnet strength={0.4}>
-                                <button className="ibtn" onClick={toggleSound} title="Ses">
-                                    {sound
-                                        ? <Bell size={16} weight="fill" color="var(--teal)" />
-                                        : <BellSlash size={16} weight="fill" color="rgba(255,255,255,.3)" />}
-                                </button>
-                            </Magnet>
-                        </>
-                    )}
-
-                    {/* Kullanıcı menüsü */}
+            {isMobile && (
+                <header className="mobile-topbar">
+                    <button
+                        type="button"
+                        className="mobile-topbar__menu"
+                        onClick={() => setMenuOpen(true)}
+                        aria-label="Menüyü aç"
+                    >
+                        <List size={22} weight="bold" />
+                    </button>
+                    <NavLink to="/" className="mobile-topbar__logo" end>
+                        <img src="/nishcommerce-icon.png" alt="" />
+                        <span>Pipeline</span>
+                    </NavLink>
+                    <div className="mobile-topbar__spacer" />
                     {user && (
                         <div ref={userMenuRef} style={{ position: 'relative' }}>
                             <button
+                                type="button"
+                                className="mobile-topbar__avatar-btn"
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: 8,
-                                    padding: '5px 10px 5px 6px', borderRadius: 10,
-                                    border: '1px solid var(--glass-bdr)', background: 'var(--glass)',
-                                    cursor: 'pointer', color: 'var(--tx)', backdropFilter: 'blur(8px)',
-                                }}
                             >
                                 {user.avatarUrl
-                                    ? <img src={user.avatarUrl} alt="avatar" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
-                                    : <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#2dd4bf,#0d9488)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, color: '#0a1a1a', flexShrink: 0 }}>
-                                        {(user.fullName || user.username)[0]?.toUpperCase()}
-                                    </div>}
-                                {!isMobile && <span style={{ fontSize: 12, fontWeight: 600 }}>{user.fullName || user.username}</span>}
-                                <CaretDown size={12} weight="bold" color="var(--mt)" />
+                                    ? <img src={user.avatarUrl} alt="" />
+                                    : <span>{(user.fullName || user.username)[0]?.toUpperCase()}</span>}
                             </button>
-
                             {userMenuOpen && (
-                                <div style={{
-                                    position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                                    background: 'rgba(13,31,45,.97)', border: '1px solid rgba(45,212,191,.15)',
-                                    borderRadius: 12, padding: 6, minWidth: 180,
-                                    boxShadow: '0 16px 40px rgba(0,0,0,.5)',
-                                    zIndex: 1000,
-                                }}>
+                                <div className="sidebar-flyout sidebar-flyout--mobile-user">
                                     <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,.08)', marginBottom: 4 }}>
-                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#e2f0ef' }}>{user.fullName || user.username}</div>
-                                        <div style={{ fontSize: 11, color: '#5a8080', marginTop: 2 }}>{user.email}</div>
-                                        <div style={{ fontSize: 10, fontWeight: 700, color: '#2dd4bf', marginTop: 4, padding: '2px 8px', borderRadius: 20, background: 'rgba(45,212,191,.1)', display: 'inline-block' }}>
-                                            {user.role}
-                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 700 }}>{user.fullName || user.username}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--mt)', marginTop: 2 }}>{user.email}</div>
                                     </div>
-                                    <button onClick={() => { navigate('/profile'); setUserMenuOpen(false) }} style={{
-                                        width: '100%', padding: '9px 12px', borderRadius: 8, border: 'none',
-                                        background: 'transparent', color: '#5a8080', fontSize: 13, fontWeight: 500,
-                                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', textAlign: 'left',
-                                    }}>
+                                    <button type="button" onClick={() => { navigate('/profile'); setUserMenuOpen(false) }} className="sidebar-dd-btn">
                                         <User size={14} weight="duotone" /> Profil
                                     </button>
                                     {user.role === 'Admin' && (
-                                        <button onClick={() => { navigate('/admin'); setUserMenuOpen(false) }} style={{
-                                            width: '100%', padding: '9px 12px', borderRadius: 8, border: 'none',
-                                            background: 'transparent', color: '#f59e0b', fontSize: 13, fontWeight: 500,
-                                            display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', textAlign: 'left',
-                                        }}>
-                                            <Shield size={14} weight="duotone" /> Admin Paneli
+                                        <button type="button" onClick={() => { navigate('/admin'); setUserMenuOpen(false) }} className="sidebar-dd-btn sidebar-dd-btn--admin">
+                                            <Shield size={14} weight="duotone" /> Admin
                                         </button>
                                     )}
-                                    <button onClick={handleLogout} style={{
-                                        width: '100%', padding: '9px 12px', borderRadius: 8, border: 'none',
-                                        background: 'transparent', color: '#f87171', fontSize: 13, fontWeight: 500,
-                                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', textAlign: 'left',
-                                    }}>
-                                        <SignOut size={14} weight="duotone" /> Çıkış Yap
+                                    <button type="button" onClick={handleLogout} className="sidebar-dd-btn sidebar-dd-btn--danger">
+                                        <SignOut size={14} weight="duotone" /> Çıkış
                                     </button>
                                 </div>
                             )}
                         </div>
                     )}
-                </div>
-            </header>
+                </header>
+            )}
 
-            <div className="rbar"><div className="rbar-f" id="rbar-fill" /></div>
+            <div className="rbar" aria-hidden><div className="rbar-f" id="rbar-fill" /></div>
 
-            {/* Mobile drawer */}
             {menuOpen && (
                 <div
+                    className="drawer-overlay"
                     onClick={() => setMenuOpen(false)}
-                    style={{
-                        position: 'fixed', inset: 0,
-                        background: 'rgba(0,0,0,.65)',
-                        backdropFilter: 'blur(6px)',
-                        zIndex: 9999,
-                        display: 'flex', justifyContent: 'flex-end',
-                    }}
+                    role="presentation"
                 >
                     <div
+                        className="drawer-panel"
                         onClick={e => e.stopPropagation()}
-                        style={{
-                            width: 'min(300px, 85vw)',
-                            height: '100dvh',
-                            background: 'rgba(13,31,45,.97)',
-                            borderLeft: '1px solid rgba(45,212,191,.15)',
-                            display: 'flex', flexDirection: 'column',
-                        }}
+                        role="dialog"
+                        aria-modal="true"
                     >
-                        {/* Drawer header */}
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '16px', borderBottom: '1px solid rgba(255,255,255,.08)',
-                        }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{
-                                    width: 30, height: 30, borderRadius: 8,
-                                    background: 'linear-gradient(135deg,#2dd4bf,#0d9488)',
-                                    display: 'grid', placeItems: 'center',
-                                }}>
+                        <div className="drawer-panel__head">
+                            <div className="drawer-panel__brand">
+                                <div className="drawer-panel__brand-icon">
                                     <Lightning size={15} weight="fill" color="#fff" />
                                 </div>
-                                <span style={{ fontSize: 14, fontWeight: 700, color: '#e2f0ef' }}>Pipeline</span>
+                                <span>Pipeline</span>
                             </div>
-                            <button
-                                onClick={() => setMenuOpen(false)}
-                                style={{
-                                    width: 32, height: 32, borderRadius: 8,
-                                    border: '1px solid rgba(255,255,255,.1)',
-                                    background: 'rgba(255,255,255,.05)',
-                                    cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#5a8080',
-                                }}
-                            >
+                            <button type="button" className="drawer-panel__close" onClick={() => setMenuOpen(false)} aria-label="Kapat">
                                 <X size={16} weight="bold" />
                             </button>
                         </div>
-
-                        {/* Nav items */}
-                        <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <nav className="drawer-panel__nav">
                             {navItems.map(item => (
                                 <NavLink
                                     key={item.to}
                                     to={item.to}
                                     end={item.to === '/'}
                                     onClick={() => setMenuOpen(false)}
-                                    style={({ isActive }) => ({
-                                        display: 'flex', alignItems: 'center', gap: 12,
-                                        padding: '12px 14px', borderRadius: 10, textDecoration: 'none',
-                                        fontSize: 14, fontWeight: isActive ? 700 : 500,
-                                        color: isActive ? '#2dd4bf' : '#5a8080',
-                                        background: isActive ? 'rgba(45,212,191,.1)' : 'transparent',
-                                        border: `1px solid ${isActive ? 'rgba(45,212,191,.25)' : 'transparent'}`,
-                                    })}
+                                    className={({ isActive }) => `drawer-link${isActive ? ' drawer-link--on' : ''}`}
                                 >
-                                    <span style={{
-                                        width: 34, height: 34, borderRadius: 9,
-                                        background: 'rgba(255,255,255,.06)',
-                                        display: 'grid', placeItems: 'center', flexShrink: 0,
-                                    }}>
-                                        {item.icon}
-                                    </span>
+                                    <span className="drawer-link__ic">{item.icon}</span>
                                     {item.label}
                                 </NavLink>
                             ))}
                         </nav>
-
-                        {/* Footer actions */}
-                        <div style={{ padding: '12px 10px 28px', borderTop: '1px solid rgba(255,255,255,.08)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div className="drawer-panel__foot">
                             {[
                                 { icon: <ArrowsClockwise size={15} weight="duotone" color="#2dd4bf" />, label: 'Yenile', fn: () => { refresh(); setMenuOpen(false) } },
-                                { icon: theme === 'dark' ? <Sun size={15} weight="fill" color="#fbbf24" /> : <Moon size={15} weight="fill" color="#a78bfa" />, label: theme === 'dark' ? 'Açık Tema' : 'Koyu Tema', fn: toggleTheme },
-                                { icon: sound ? <Bell size={15} weight="fill" color="#2dd4bf" /> : <BellSlash size={15} weight="fill" color="#5a8080" />, label: sound ? 'Ses Açık' : 'Ses Kapalı', fn: toggleSound },
+                                { icon: theme === 'dark' ? <Sun size={15} weight="fill" color="#fbbf24" /> : <Moon size={15} weight="fill" color="#a78bfa" />, label: theme === 'dark' ? 'Açık tema' : 'Koyu tema', fn: toggleTheme },
+                                { icon: sound ? <Bell size={15} weight="fill" color="#2dd4bf" /> : <BellSlash size={15} weight="fill" color="#5a8080" />, label: sound ? 'Ses açık' : 'Ses kapalı', fn: toggleSound },
                             ].map(a => (
-                                <button key={a.label} onClick={a.fn} style={{
-                                    display: 'flex', alignItems: 'center', gap: 10,
-                                    padding: '10px 14px', borderRadius: 10,
-                                    background: 'transparent', border: 'none', cursor: 'pointer',
-                                    color: '#5a8080', fontSize: 13, fontWeight: 500, textAlign: 'left',
-                                }}>
+                                <button key={a.label} type="button" className="drawer-panel__foot-btn" onClick={a.fn}>
                                     {a.icon} {a.label}
                                 </button>
                             ))}

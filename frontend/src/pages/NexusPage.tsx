@@ -10,6 +10,7 @@ import Pagination from '../components/ui/Pagination'
 import { usePagination } from '../hooks/usePagination'
 import type { NexusRepository, NexusArtifact, NexusStorageStats } from '../types'
 import Select from '../components/ui/Select'
+import PageHeader from '../components/layout/PageHeader'
 
 function formatSize(bytes: number) {
     if (bytes > 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)} GB`
@@ -84,11 +85,12 @@ export default function NexusPage() {
 
     return (
         <div className="page-wrap">
-            <div className="page-title">
-                <Vault size={22} weight="duotone" style={{ marginRight: 8, verticalAlign: 'middle', color: 'var(--teal)' }} />
-                Nexus Repository Manager
-            </div>
-            <div className="page-sub">Artifact deposu — repolar, versiyonlar ve storage istatistikleri</div>
+            <PageHeader
+                icon={<Vault size={22} weight="duotone" />}
+                kicker="Artifact"
+                title="Nexus Repository Manager"
+                subtitle="Artifact deposu — repolar, versiyonlar ve storage istatistikleri"
+            />
 
             {/* Stat Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>

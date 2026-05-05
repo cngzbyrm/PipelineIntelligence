@@ -6,6 +6,7 @@ import {
 } from '@phosphor-icons/react'
 import { dashboardApi } from '../services/api'
 import { PipelineLoaderInline } from '../components/ui/PipelineLoader'
+import PageHeader from '../components/layout/PageHeader'
 
 interface NodeInfo {
   name: string
@@ -220,11 +221,12 @@ export default function InfraPage() {
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <Desktop size={22} weight="duotone" color="var(--teal)" />
-        <div className="page-title" style={{ margin: 0 }}>Altyapı Durumu</div>
-      </div>
-      <div className="page-sub">Jenkins master ve agent node'larının sistem metrikleri</div>
+      <PageHeader
+        icon={<Desktop size={22} weight="duotone" />}
+        kicker="Sistem"
+        title="Altyapı durumu"
+        subtitle="Jenkins master ve agent node'larının sistem metrikleri"
+      />
 
       {/* Summary */}
       {data && (
